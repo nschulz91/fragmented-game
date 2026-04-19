@@ -1,54 +1,82 @@
 # Fragmented
 
-Fragmented is a standalone browser-based 2D action-adventure combat sandbox built with Phaser and Vite.  
-This first milestone is a local-playable Lake Pixor encounter: Charlie Smith fights through two minion waves, defeats a Shadow Court warden, and proves out the core combat loop for the larger game.
+Fragmented is a standalone browser-based 2D action-adventure combat slice built with Phaser and Vite.
 
-## Local Run
+This V2 milestone keeps the fight inside Lake Pixor and expands the playable loop to:
+
+- title menu, how-to-play, settings, pause, checkpoint, boss intro, win, and lose scenes
+- keyboard and gamepad support
+- slash, pulse, dash, and parry combat
+- three scripted pre-boss waves
+- checkpoint buff and faction-perk selection
+- a three-phase Warden boss with summons and stronger telegraphs
+- deterministic debugging hooks for browser smoke tests
+
+## Local Play
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local Vite URL in a browser.
+Open the local Vite URL, usually `http://127.0.0.1:5173/`.
 
-## Build And Preview
+## Production Preview
 
 ```bash
 npm run build
 npm run preview
 ```
 
+This serves the production bundle locally.
+
+If a hosted Vercel preview has been created for the current branch or repo, use that URL as the shareable browser build.
+
 ## Controls
 
 - `WASD` or arrow keys: move
 - `Space`: slash
-- `Shift`: time pulse
-- `Enter`: continue from menu, briefing, win, or lose screens
+- `Q`: time pulse
+- `Shift`: dash / evade
+- `E`: parry / block
+- `Esc`: pause
+- `F`: fullscreen
+- `Enter`: continue through menu cards and end screens
 
-## Version 1 Scope
+## Gamepad
 
-- Browser-based local game loop
-- Menu, mission brief, gameplay, win, and lose scenes
-- Top-down arena combat
-- Charlie as the only playable character
-- Three minion archetypes
-- One boss encounter
-- Toxic water hazard
-- Keyboard-only controls
-- Lightweight procedural sound effects
+- left stick / d-pad: move
+- south button: slash / confirm
+- east button: dash
+- west button: pulse
+- north button: parry
+- start: pause / confirm on menu-style scenes
+
+## Smoke-Test Hooks
+
+The game exposes two browser hooks for deterministic inspection:
+
+- `window.render_game_to_text()`
+- `window.advanceTime(ms)`
+
+You can also set a deterministic encounter seed with the query string:
+
+```text
+/?seed=smoke-seed
+```
 
 ## Project Structure
 
-- `src/game/scenes/`: Phaser scenes
-- `src/game/entities/`: player and enemy logic
-- `src/game/systems/`: HUD and sound helpers
+- `src/game/scenes/`: Phaser scene flow
+- `src/game/entities/`: Charlie, enemies, and boss logic
+- `src/game/systems/`: HUD, audio, gamepad, and seeded RNG helpers
 - `src/game/content/`: tuning values and story text
+- `src/game/state.ts`: run state, settings, buff/perk catalogs, and render-state types
 - `src/ui/`: DOM shell around the canvas
 - `docs/`: story and design notes
 
 ## Notes
 
-- The visual assets are intentionally generated placeholders for speed and portability.
-- The current build is a combat-first sandbox, not the full open-world game.
-- The docs in `docs/` capture the source story and the design direction for expansion.
+- Visuals and audio are procedural placeholders tuned for readability and portability.
+- The build is still a combat-first vertical slice, not the full open-world game.
+- The docs in `docs/` remain the source story and direction for later expansion.

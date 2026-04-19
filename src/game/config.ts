@@ -2,7 +2,11 @@ import Phaser from 'phaser'
 import { BootScene } from './scenes/BootScene'
 import { MenuScene } from './scenes/MenuScene'
 import { InstructionScene } from './scenes/InstructionScene'
+import { SettingsScene } from './scenes/SettingsScene'
+import { CheckpointScene } from './scenes/CheckpointScene'
+import { BossIntroScene } from './scenes/BossIntroScene'
 import { GameScene } from './scenes/GameScene'
+import { PauseScene } from './scenes/PauseScene'
 import { WinScene } from './scenes/WinScene'
 import { LoseScene } from './scenes/LoseScene'
 
@@ -14,6 +18,9 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   width: VIEWPORT_WIDTH,
   height: VIEWPORT_HEIGHT,
   backgroundColor: '#091116',
+  input: {
+    gamepad: true,
+  },
   physics: {
     default: 'arcade',
     arcade: {
@@ -21,7 +28,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, MenuScene, InstructionScene, GameScene, WinScene, LoseScene],
+  scene: [BootScene, MenuScene, InstructionScene, SettingsScene, CheckpointScene, BossIntroScene, GameScene, PauseScene, WinScene, LoseScene],
   render: {
     pixelArt: false,
     antialias: true,
@@ -31,3 +38,4 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
 }
+

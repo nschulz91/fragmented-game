@@ -1,0 +1,18 @@
+Original prompt: Implement the Fragmented V2 expansion plan with combat polish, boss encounter expansion, menu/UI polish, deterministic testing hooks, gamepad/fullscreen/settings, and a way to play it locally and via a shareable preview link.
+
+- 2026-04-19: Started V2 expansion pass on top of the existing Lake Pixor build.
+- Using installed skills: `develop-web-game` for deterministic game-loop testing and `frontend-skill` for UI/menu presentation quality.
+- Initial repo findings:
+  - Current game is a single-screen keyboard-only arena with simple menu/instruction/win/lose scenes.
+  - No deterministic hooks yet (`render_game_to_text`, `advanceTime` missing).
+  - No pause/settings/fullscreen/gamepad path yet.
+  - No hosted preview deployment path configured yet.
+- Implemented V2 systems:
+  - Added dash, parry, pause, settings, fullscreen, gamepad support, seeded RNG, procedural audio director, and run-state tracking.
+  - Expanded scene flow with checkpoint and boss-intro cards plus richer win/lose/menu shells.
+  - Reworked combat into three scripted pre-boss waves, temporary buff selection, faction support perk selection, and a three-phase Warden fight with summons.
+  - Added deterministic hooks: `window.render_game_to_text()` and `window.advanceTime(ms)`.
+- Verification status:
+  - `npm run build` passes.
+  - Local browser smoke test confirms menu -> instructions -> game -> checkpoint -> boss intro -> boss -> pause scene/state transitions.
+  - Seeded smoke run validates render-state output for checkpoint unlock, buff/perk selection, and boss phase progression without console errors.

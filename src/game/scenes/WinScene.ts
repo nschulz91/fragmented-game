@@ -1,50 +1,64 @@
 import Phaser from 'phaser'
-import { winSummary } from '../content/gameText'
+import { bossOutroLines } from '../content/gameText'
+import { audioDirector } from '../systems/AudioDirector'
+import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { setLoreText, setObjectiveText, setStatusText } from '../../ui/shell'
 
 export class WinScene extends Phaser.Scene {
   private enterKey?: Phaser.Input.Keyboard.Key
+  private readonly pad = new GamepadState()
 
   constructor() {
     super('win')
   }
 
   create() {
+    const runState = this.registry.get('runState')
+    this.registry.set('renderState', {
+      ...(this.registry.get('renderState') ?? {}),
+      mode: 'win',
+      encounter: {
+        seed: runState.seed,
+        wave: runState.currentWave,
+        checkpointUnlocked: runState.checkpoint.unlocked,
+        selectedBuff: runState.selectedBuff,
+        selectedPerk: runState.selectedPerk,
+      },
+      objective: 'Lake Pixor is secure. Return to menu to start another run.',
+    })
     setStatusText('Victory confirmed.')
-    setObjectiveText('Lake Pixor is clear. The path to the Shadow Castle remains.')
-    setLoreText(winSummary)
+    setObjectiveText('Lake Pixor is clear. The route toward the Cinder Causeway is now live.')
+    setLoreText(bossOutroLines.join(' '))
+    audioDirector.playTrack('menu')
 
-    this.add.rectangle(480, 270, 960, 540, 0x071117, 0.86)
-    this.add.text(480, 138, 'Lake Pixor Held', {
+    this.add.rectangle(480, 270, 960, 540, 0x061117, 0.9)
+    this.add.text(480, 118, 'Lake Pixor Held', {
       fontFamily: 'Georgia',
-      fontSize: '44px',
+      fontSize: '46px',
       color: '#fff1be',
     }).setOrigin(0.5)
 
-    this.add.text(480, 254, winSummary, {
+    this.add.text(480, 254, bossOutroLines.join('\n\n'), {
       fontFamily: 'Georgia',
       fontSize: '22px',
       color: '#e4f4ed',
       align: 'center',
       wordWrap: { width: 720 },
-      lineSpacing: 10,
+      lineSpacing: 12,
     }).setOrigin(0.5)
 
-    this.add.text(480, 432, 'Press Enter to run the breach again', {
+    this.add.text(480, 446, 'Press Enter or the south button to return to menu.', {
       fontFamily: 'Georgia',
-      fontSize: '24px',
-      color: '#f4c972',
+      fontSize: '20px',
+      color: '#f5c978',
     }).setOrigin(0.5)
 
     this.enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER)
-    this.input.once('pointerdown', () => {
-      this.scene.start('game')
-    })
   }
 
   update() {
-    if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-      this.scene.start('game')
-    }
+    this.pad.sync(this.input.gamepad)
+    if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) this.scene.start('menu')
+    if (this.pad.justPressed(GamepadButtons.South) || this.pad.justPressed(GamepadButtons.Start)) this.scene.start('menu')
   }
 }

@@ -1,17 +1,40 @@
-export const introLines = [
-  'Charlie Smith has proof that the Shadow Court moved through Lake Pixor.',
-  'His brother is still alive, but the Prince of Shadows is building a hunting ground around him.',
-  'Survive the trial, break the first warden, and keep the trail warm.',
+import type { BuffId, PerkId } from '../state'
+
+export const namedFactions = ['House Veyra', 'Order of Glass', 'Pixor Scouts']
+
+export const menuLore = [
+  'Lake Pixor sits on the first open route to the Shadow Castle.',
+  'House Veyra, the Order of Glass, and the Pixor Scouts all left aid behind for anyone still willing to hunt the Prince of Shadows.',
+  'Charlie only needs one breach to prove his brother is still within reach.',
 ]
 
 export const instructionLines = [
-  'Clear the first two waves to force out the warden.',
-  'Water is toxic. Charlie can cross it, but every second in it hurts.',
-  'Space swings a close slash. Shift releases a time pulse that slows enemies and cracks armor.',
+  'Break three scripted waves to reach the checkpoint before the boss breach.',
+  'Space slashes, Q releases the time pulse, Shift dashes, and E parries.',
+  'Water is toxic. Use landmarks, dodge windows, and telegraphs instead of forcing straight lines.',
 ]
 
-export const winSummary =
-  'Lake Pixor is broken. The Prince of Shadows knows Charlie is coming, and the path toward the Shadow Castle is now open.'
+export const bossIntroLines = [
+  'Warden of Pixor: The lake already chose its dead. Leave your brother to the Prince.',
+  'Charlie: Then the lake can learn a new name for fear.',
+]
 
-export const loseSummary =
-  'Charlie fell before the trail was secured. The hunt resets at the last breach in time.'
+export const bossOutroLines = [
+  'The warden is down. House Veyra marks the breach as stable, and the Scouts confirm the next trail points east toward the Cinder Causeway.',
+  'The Prince of Shadows now knows Charlie is no longer guessing.',
+]
+
+export const loseSummary = 'Charlie fell before the breach was secured. The last stable checkpoint is still holding.'
+
+export const buffLabels: Record<BuffId, string> = {
+  'time-thread': 'Time Thread',
+  'iron-blood': 'Iron Blood',
+  'rift-step': 'Rift Step',
+}
+
+export const perkLabels: Record<PerkId, string> = {
+  'house-veyra': 'House Veyra',
+  'order-of-glass': 'Order of Glass',
+  'pixor-scouts': 'Pixor Scouts',
+}
+

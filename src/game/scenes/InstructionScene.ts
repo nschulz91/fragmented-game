@@ -1,59 +1,68 @@
 import Phaser from 'phaser'
-import { instructionLines } from '../content/gameText'
+import { instructionLines, namedFactions } from '../content/gameText'
+import { audioDirector } from '../systems/AudioDirector'
+import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { setLoreText, setObjectiveText, setStatusText } from '../../ui/shell'
 
 export class InstructionScene extends Phaser.Scene {
   private enterKey?: Phaser.Input.Keyboard.Key
+  private readonly pad = new GamepadState()
 
   constructor() {
     super('instructions')
   }
 
   create() {
+    this.registry.set('renderState', {
+      ...(this.registry.get('renderState') ?? {}),
+      mode: 'instructions',
+    })
     setStatusText('Briefing active. Enter deploys Charlie.')
-    setObjectiveText('Clear wave one, clear wave two, defeat the warden, then hold the line.')
+    setObjectiveText('Complete three waves, choose one buff and one faction perk, then break the warden.')
     setLoreText(
-      'Lake Pixor is polluted by Shadow Court residue. Charlie can weaponize time, but the arena is designed to grind him down before the castle.'
+      `Allied traces remain from ${namedFactions.join(', ')}. Charlie only gets one support line per run, so the checkpoint choice matters.`
     )
+    audioDirector.playTrack('menu')
 
-    this.add.rectangle(480, 270, 960, 540, 0x0b1820, 0.72)
-    this.add.text(480, 98, 'Mission Brief', {
+    this.add.rectangle(480, 270, 960, 540, 0x09141a, 0.86)
+    this.add.text(480, 84, 'Mission Brief', {
       fontFamily: 'Georgia',
-      fontSize: '40px',
+      fontSize: '42px',
       color: '#fff4d3',
     }).setOrigin(0.5)
 
-    this.add.text(480, 218, instructionLines.join('\n\n'), {
+    this.add.text(480, 212, instructionLines.join('\n\n'), {
       fontFamily: 'Georgia',
-      fontSize: '21px',
+      fontSize: '22px',
       color: '#e1ece8',
       align: 'center',
-      wordWrap: { width: 720 },
-      lineSpacing: 10,
+      wordWrap: { width: 740 },
+      lineSpacing: 12,
     }).setOrigin(0.5)
 
-    this.add.text(480, 394, 'Recommended pattern: keep moving, slash minions, pulse when the pack closes.', {
+    this.add.text(480, 374, `Faction support available: ${namedFactions.join(' · ')}`, {
       fontFamily: 'Georgia',
       fontSize: '18px',
-      color: '#c7dfdf',
+      color: '#d2ddd5',
       align: 'center',
       wordWrap: { width: 760 },
     }).setOrigin(0.5)
 
-    this.add.text(480, 472, 'Press Enter to breach the arena', {
+    this.add.text(480, 448, 'Press Enter or the south button to breach Lake Pixor.', {
       fontFamily: 'Georgia',
-      fontSize: '24px',
-      color: '#f4c972',
+      fontSize: '22px',
+      color: '#f5c978',
     }).setOrigin(0.5)
 
     this.enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER)
-    this.input.once('pointerdown', () => {
-      this.scene.start('game')
-    })
   }
 
   update() {
+    this.pad.sync(this.input.gamepad)
     if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+      this.scene.start('game')
+    }
+    if (this.pad.justPressed(GamepadButtons.South) || this.pad.justPressed(GamepadButtons.Start)) {
       this.scene.start('game')
     }
   }
