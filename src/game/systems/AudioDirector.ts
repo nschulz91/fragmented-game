@@ -128,6 +128,22 @@ class AudioDirector {
     }
     this.currentTrack = 'none'
   }
+
+  suspend() {
+    this.stopTrack()
+    if (this.context && this.context.state === 'running') {
+      void this.context.suspend()
+    }
+  }
+
+  shutdown() {
+    this.stopTrack()
+    if (this.context) {
+      const context = this.context
+      this.context = undefined
+      void context.close()
+    }
+  }
 }
 
 export const audioDirector = new AudioDirector()
