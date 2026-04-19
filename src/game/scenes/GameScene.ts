@@ -3,19 +3,27 @@ import { Boss } from '../entities/Boss'
 import { Enemy, type MinionKind } from '../entities/Enemy'
 import { Player } from '../entities/Player'
 import { arena, arenaLandmarks, bossStats, playerStats, spawnPoints, waterPools, wavePlan } from '../content/tuning'
-import { bossOutroLines } from '../content/gameText'
-import { buffCatalog, perkCatalog, saveSettings, type BuffId, type PerkId, type RenderState, createRunState } from '../state'
+import { buffLabels, perkLabels } from '../content/gameText'
+import {
+  grantScore,
+  saveSettings,
+  type MetaProgress,
+  type RenderState,
+  type RunState,
+} from '../state'
 import { audioDirector } from '../systems/AudioDirector'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { Hud } from '../systems/Hud'
 import { SeededRng } from '../systems/SeededRng'
-import { setLoreText, setObjectiveText, setStatusText } from '../../ui/shell'
+import { setHeaderText, setLoreText, setObjectiveText, setProgressText, setPromptText, setRegionText, setStatusText } from '../../ui/shell'
 
 type ActionState = {
   slash: boolean
   pulse: boolean
   dash: boolean
   parry: boolean
+  chargePressed: boolean
+  chargeHeld: boolean
   pause: boolean
   fullscreen: boolean
 }
@@ -24,7 +32,7 @@ export class GameScene extends Phaser.Scene {
   private player!: Player
   private hud!: Hud
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private keys!: Record<'W' | 'A' | 'S' | 'D' | 'SPACE' | 'Q' | 'SHIFT' | 'E' | 'ESC' | 'F', Phaser.Input.Keyboard.Key>
+  private keys!: Record<'W' | 'A' | 'S' | 'D' | 'SPACE' | 'Q' | 'SHIFT' | 'E' | 'C' | 'ESC' | 'F', Phaser.Input.Keyboard.Key>
   private readonly pad = new GamepadState()
   private enemies: Enemy[] = []
   private boss?: Boss
@@ -43,14 +51,19 @@ export class GameScene extends Phaser.Scene {
     super('game')
   }
 
-  init() {
-    const runState = this.registry.get('runState') ?? createRunState()
+  init(data?: { region?: 'pixor' }) {
+    const runState = this.registry.get('runState') as RunState
+    runState.currentRegion = data?.region ?? 'pixor'
+    runState.currentChapter = 1
+    runState.currentFlow = 'game'
+    runState.mode = 'game'
     this.registry.set('runState', runState)
     this.simulationNow = 0
   }
 
   create() {
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
+    const meta = this.registry.get('metaProgress') as MetaProgress
     this.rng = new SeededRng(runState.seed)
     this.currentWaveIndex = runState.resumedFromCheckpoint && runState.checkpoint.unlocked ? wavePlan.length : 0
     runState.currentWave = this.currentWaveIndex + 1
@@ -60,13 +73,17 @@ export class GameScene extends Phaser.Scene {
     this.bossPhaseTriggered.clear()
     this.shieldTimer = 0
 
-    setStatusText('Arena loaded. Hold the breach.')
-    setObjectiveText(runState.resumedFromCheckpoint ? 'Resume from the checkpoint and break the warden.' : wavePlan[0].objective)
+    setStatusText('Lake Pixor loaded. Hold the breach.')
+    setObjectiveText(runState.resumedFromCheckpoint ? 'Resume from the checkpoint and break the Warden.' : wavePlan[0].objective)
     setLoreText(
       runState.resumedFromCheckpoint
-        ? 'The checkpoint still holds. Charlie returns to the boss breach with the same chosen aid.'
-        : 'Lake Pixor is unstable but readable now: stronger landmarks, brighter telegraphs, and a cleaner breach line.'
+        ? 'The checkpoint still holds. Charlie returns to the boss breach with the same run state.'
+        : 'Lake Pixor is the first chapter: toxic ground, broken landmarks, and the first proof that the route east can hold.'
     )
+    setHeaderText('Chapter 1 remains the structured combat tutorial, but now it feeds chapter score, relic progression, and the reward room.')
+    setProgressText(`Relics ${meta.unlockedRelics.length} | Score ${runState.score} | Modifier x${runState.scoreMultiplier}`)
+    setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South slash, West pulse, R1 charge' : 'Space slash, Q pulse, C charge')
+    setRegionText('Chapter 1: Lake Pixor')
 
     audioDirector.playTrack('ambient')
 
@@ -76,11 +93,23 @@ export class GameScene extends Phaser.Scene {
 
     this.drawArena()
     this.enemyProjectiles = this.physics.add.group()
-    this.player = new Player(this, 480, 420, runState.selectedBuff, runState.selectedPerk)
-    this.hud = new Hud(this)
+    this.player = new Player(
+      this,
+      480,
+      420,
+      runState.selectedBuff,
+      runState.selectedPerk,
+      runState.activeRelics,
+      runState.factionVariant
+    )
 
+    if (runState.activeChallengeModifiers.includes('glass-fragility')) {
+      this.player.health = Math.min(this.player.health, this.player.maxHealth - 24)
+    }
+
+    this.hud = new Hud(this)
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE,Q,SHIFT,E,ESC,F') as GameScene['keys']
+    this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE,Q,SHIFT,E,C,ESC,F') as GameScene['keys']
 
     this.physics.add.overlap(this.player, this.enemyProjectiles, (_player, projectile) => {
       this.handleProjectileCollision(projectile as Phaser.Physics.Arcade.Image)
@@ -113,14 +142,14 @@ export class GameScene extends Phaser.Scene {
   beginBossPhase() {
     if (this.bossActive) return
     this.bossActive = true
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
     runState.currentWave = wavePlan.length + 1
     runState.bossPhase = 1
     this.registry.set('runState', runState)
     this.phaseLabel = 'Warden'
     this.currentObjective = 'Break the Warden of Pixor before the Prince locks the breach.'
     setObjectiveText(this.currentObjective)
-    setLoreText('The final lock moves. Charlie only gets one clean read on the phase changes.')
+    setLoreText('The final lock moves. The Warden is now the bridge between the lake and the reward room.')
     this.boss = new Boss(this, 480, 112, this.enemyProjectiles)
     audioDirector.playSfx('warning')
     this.scene.resume()
@@ -131,7 +160,9 @@ export class GameScene extends Phaser.Scene {
 
     const actions = this.collectActions()
     if (actions.pause && !manual) {
-      this.registry.get('runState').paused = true
+      const runState = this.registry.get('runState') as RunState
+      runState.paused = true
+      this.registry.set('runState', runState)
       this.scene.launch('pause')
       this.scene.pause()
       return
@@ -155,13 +186,19 @@ export class GameScene extends Phaser.Scene {
       const used = this.player.dash(now, moveVector)
       if (used) {
         audioDirector.playSfx('dash')
-        if ((this.registry.get('runState').selectedPerk as PerkId | null) === 'pixor-scouts') {
+        if ((this.registry.get('runState') as RunState).selectedPerk === 'pixor-scouts') {
           this.player.activateDamageBoost(now, 1800)
         }
       }
     }
-    if (actions.parry && this.player.parry(now)) {
-      audioDirector.playSfx('parry', 0.7)
+    if (actions.parry && this.player.parry(now)) audioDirector.playSfx('parry', 0.7)
+    if (actions.chargePressed) this.player.startCharge(now)
+    if (!actions.chargeHeld && this.player.isCharging(now)) {
+      const charge = this.player.releaseCharge(now, [...this.enemies, ...(this.boss ? [this.boss] : [])])
+      if (charge.detonated) {
+        this.flashChargeFx()
+        audioDirector.playSfx('boss', 0.45)
+      }
     }
     if (actions.slash) {
       const used = this.player.slash(now, [...this.enemies, ...(this.boss ? [this.boss] : [])], () => audioDirector.playSfx('slash'))
@@ -193,18 +230,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   private collectActions(): ActionState {
+    const chargeHeld = this.keys.C.isDown || this.pad.isDown(GamepadButtons.R1)
     return {
       slash: Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || this.pad.justPressed(GamepadButtons.South),
       pulse: Phaser.Input.Keyboard.JustDown(this.keys.Q) || this.pad.justPressed(GamepadButtons.West),
       dash: Phaser.Input.Keyboard.JustDown(this.keys.SHIFT) || this.pad.justPressed(GamepadButtons.East),
       parry: Phaser.Input.Keyboard.JustDown(this.keys.E) || this.pad.justPressed(GamepadButtons.North),
+      chargePressed: Phaser.Input.Keyboard.JustDown(this.keys.C) || this.pad.justPressed(GamepadButtons.R1),
+      chargeHeld,
       pause: Phaser.Input.Keyboard.JustDown(this.keys.ESC) || this.pad.justPressed(GamepadButtons.Start),
       fullscreen: Phaser.Input.Keyboard.JustDown(this.keys.F),
     }
   }
 
   private updatePerks(now: number) {
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
     if (runState.selectedPerk === 'house-veyra' && now > this.shieldTimer) {
       this.shieldTimer = now + 8500
       this.player.grantShield()
@@ -236,11 +276,24 @@ export class GameScene extends Phaser.Scene {
     })
   }
 
+  private flashChargeFx() {
+    const ring = this.add.circle(this.player.x, this.player.y, this.player.chargeRadius, 0xffba7b, 0.28).setDepth(14)
+    this.tweens.add({
+      targets: ring,
+      alpha: 0,
+      scale: 1.4,
+      duration: 180,
+      onComplete: () => ring.destroy(),
+    })
+  }
+
   private updateHazards(deltaMs: number, time: number) {
+    const runState = this.registry.get('runState') as RunState
+    const hazardMultiplier = runState.activeChallengeModifiers.includes('ember-tax') ? 1.3 : 1
     for (const pool of waterPools) {
       const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, pool.x, pool.y)
       if (distance <= pool.radius) {
-        const damage = (playerStats.waterDamagePerSecond * deltaMs) / 1000
+        const damage = ((playerStats.waterDamagePerSecond * hazardMultiplier) * deltaMs) / 1000
         const tookDamage = this.player.receiveDamage(damage, time)
         if (tookDamage) audioDirector.playSfx('hit', 0.5)
         setStatusText('Toxic water is burning Charlie.')
@@ -280,7 +333,7 @@ export class GameScene extends Phaser.Scene {
       if (!enemy.active) return
       if (Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y) < 34) {
         if (this.player.isParrying()) {
-          enemy.stun?.((this.registry.get('runState').selectedPerk as PerkId | null) === 'order-of-glass' ? 850 : 600)
+          enemy.stun?.((this.registry.get('runState') as RunState).selectedPerk === 'order-of-glass' ? 850 : 600)
           this.player.handleParrySuccess(enemy)
           audioDirector.playSfx('parry')
           return
@@ -291,7 +344,7 @@ export class GameScene extends Phaser.Scene {
 
     if (this.boss && this.boss.active && Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.player.x, this.player.y) < 52) {
       if (this.player.isParrying()) {
-        this.boss.stun((this.registry.get('runState').selectedPerk as PerkId | null) === 'order-of-glass' ? 700 : 450)
+        this.boss.stun((this.registry.get('runState') as RunState).selectedPerk === 'order-of-glass' ? 700 : 450)
         this.player.handleParrySuccess(this.boss)
         audioDirector.playSfx('parry')
       } else if (this.player.receiveDamage(this.boss.touchDamage * 0.2, time)) {
@@ -301,8 +354,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePhaseProgression() {
-    if (this.bossActive && this.boss?.active) {
-      const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
+    if (this.bossActive && this.boss) {
+      if (!this.boss.active) {
+        grantScore(runState, 1350)
+        this.player.restoreAfterChapterClear()
+        this.registry.set('runState', runState)
+        audioDirector.playSfx('win')
+        this.scene.start('dialogue', {
+          lines: 'boss-outro',
+          nextScene: 'reward',
+          nextData: {},
+        })
+        return
+      }
+
       const ratio = this.boss.health / this.boss.maxHealth
       if (ratio <= bossStats.phaseThresholds[0] && !this.bossPhaseTriggered.has(2)) {
         this.bossPhaseTriggered.add(2)
@@ -312,7 +378,7 @@ export class GameScene extends Phaser.Scene {
         this.spawnMinion('shade')
         this.spawnMinion('shade')
         audioDirector.playSfx('warning')
-        setLoreText('The warden fractures the air and calls shades into the breach.')
+        setLoreText('The Warden fractures the air and calls shades into the breach.')
       }
       if (ratio <= bossStats.phaseThresholds[1] && !this.bossPhaseTriggered.has(3)) {
         this.bossPhaseTriggered.add(3)
@@ -325,19 +391,11 @@ export class GameScene extends Phaser.Scene {
         audioDirector.playSfx('boss')
         setLoreText('The last phase is heavier, faster, and much less patient.')
       }
-
-      if (!this.boss.active) {
-        audioDirector.playSfx('win')
-        setLoreText(bossOutroLines.join(' '))
-        this.scene.start('win')
-      }
       return
     }
 
     if (this.currentWaveIndex >= wavePlan.length) {
-      if (!this.checkpointHandled) {
-        this.unlockCheckpoint()
-      }
+      if (!this.checkpointHandled) this.unlockCheckpoint()
       return
     }
 
@@ -347,7 +405,6 @@ export class GameScene extends Phaser.Scene {
     if (this.currentWaveIndex < wavePlan.length) {
       this.spawnWave(this.currentWaveIndex)
       const nextWave = wavePlan[this.currentWaveIndex]
-      const runState = this.registry.get('runState')
       runState.currentWave = this.currentWaveIndex + 1
       this.registry.set('runState', runState)
       this.phaseLabel = nextWave.label
@@ -363,10 +420,11 @@ export class GameScene extends Phaser.Scene {
   private unlockCheckpoint() {
     if (this.checkpointHandled) return
     this.checkpointHandled = true
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
     runState.checkpoint.unlocked = true
     runState.checkpoint.reachedAtWave = wavePlan.length
     runState.currentWave = wavePlan.length
+    grantScore(runState, 540)
     this.registry.set('runState', runState)
     this.phaseLabel = 'Checkpoint'
     this.currentObjective = 'Select one buff and one faction support perk.'
@@ -378,14 +436,17 @@ export class GameScene extends Phaser.Scene {
 
   private spawnWave(index: number) {
     const wave = wavePlan[index]
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
     runState.currentWave = index + 1
     this.registry.set('runState', runState)
     this.phaseLabel = wave.label
     this.currentObjective = wave.objective
-    for (let i = 0; i < wave.shades; i += 1) this.spawnMinion('shade')
-    for (let i = 0; i < wave.cultists; i += 1) this.spawnMinion('cultist')
-    for (let i = 0; i < wave.brutes; i += 1) this.spawnMinion('brute')
+    const kinds: MinionKind[] = [
+      ...Array(wave.shades + (runState.activeChallengeModifiers.includes('hunters-mark') ? 1 : 0)).fill('shade'),
+      ...Array(wave.cultists).fill('cultist'),
+      ...Array(wave.brutes).fill('brute'),
+    ] as MinionKind[]
+    kinds.forEach((kind) => this.spawnMinion(kind))
   }
 
   private spawnMinion(kind: MinionKind) {
@@ -395,7 +456,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateHud() {
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
     this.hud.render({
       playerHealth: this.player.health,
       playerMaxHealth: this.player.maxHealth,
@@ -403,20 +464,26 @@ export class GameScene extends Phaser.Scene {
       dashReady: this.player.canDash(this.simulationNow),
       parryReady: this.player.canParry(this.simulationNow),
       pulseReady: this.player.canPulse(this.simulationNow),
+      chargeReady: this.player.canCharge(this.simulationNow),
       shieldCharges: this.player.shieldCharges,
       label: this.phaseLabel,
-      objective: this.currentObjective,
-      buffLabel: `Buff: ${runState.selectedBuff ? buffCatalog[runState.selectedBuff as BuffId].name : 'None'}`,
-      perkLabel: `Support: ${runState.selectedPerk ? perkCatalog[runState.selectedPerk as PerkId].name : 'None'}`,
+      objective: `${this.currentObjective}  |  Score ${runState.score}`,
+      buffLabel: `Buff: ${runState.selectedBuff ? buffLabels[runState.selectedBuff] : 'None'}`,
+      perkLabel: `Support: ${runState.selectedPerk ? perkLabels[runState.selectedPerk] : 'None'}`,
       bossHealthRatio: this.boss?.active ? this.boss.health / this.boss.maxHealth : undefined,
       bossPhase: this.boss?.active ? this.boss.phase : undefined,
     })
   }
 
   private updateRenderState() {
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
     const renderState: RenderState = {
-      mode: this.scene.isPaused() ? 'pause' : this.bossActive ? 'game' : 'game',
+      mode: 'game',
+      flow: runState.currentFlow,
+      region: 'pixor',
+      chapter: 1,
+      seed: runState.seed,
+      inputMode: runState.inputMode,
       coordinateSystem: 'origin=(0,0) top-left, +x right, +y down',
       player: {
         x: this.player.x,
@@ -427,6 +494,7 @@ export class GameScene extends Phaser.Scene {
         dashReady: this.player.canDash(this.simulationNow),
         parryReady: this.player.canParry(this.simulationNow),
         pulseReady: this.player.canPulse(this.simulationNow),
+        chargeReady: this.player.canCharge(this.simulationNow),
         shieldCharges: this.player.shieldCharges,
       },
       enemies: this.enemies.map((enemy) => ({
@@ -451,6 +519,9 @@ export class GameScene extends Phaser.Scene {
         selectedBuff: runState.selectedBuff,
         selectedPerk: runState.selectedPerk,
       },
+      relics: runState.activeRelics,
+      activeModifiers: runState.activeChallengeModifiers,
+      score: runState.score,
       objective: this.currentObjective,
     }
     this.registry.set('renderState', renderState)
@@ -491,7 +562,7 @@ export class GameScene extends Phaser.Scene {
       fontSize: '30px',
       color: '#e0eee6',
     }).setAlpha(0.9)
-    this.add.text(824, 500, 'Cinder Causeway', {
+    this.add.text(824, 500, 'Breach Road', {
       fontFamily: 'Georgia',
       fontSize: '18px',
       color: '#d9c492',

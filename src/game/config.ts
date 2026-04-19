@@ -1,14 +1,21 @@
 import Phaser from 'phaser'
 import { BootScene } from './scenes/BootScene'
 import { MenuScene } from './scenes/MenuScene'
+import { BriefingScene } from './scenes/BriefingScene'
+import { ChapterCardScene } from './scenes/ChapterCardScene'
+import { DialogueScene } from './scenes/DialogueScene'
 import { InstructionScene } from './scenes/InstructionScene'
 import { SettingsScene } from './scenes/SettingsScene'
 import { CheckpointScene } from './scenes/CheckpointScene'
 import { BossIntroScene } from './scenes/BossIntroScene'
+import { RewardScene } from './scenes/RewardScene'
+import { RouteScene } from './scenes/RouteScene'
 import { GameScene } from './scenes/GameScene'
+import { CausewayScene } from './scenes/CausewayScene'
 import { PauseScene } from './scenes/PauseScene'
 import { WinScene } from './scenes/WinScene'
 import { LoseScene } from './scenes/LoseScene'
+import { ResultsScene } from './scenes/ResultsScene'
 
 export const VIEWPORT_WIDTH = 960
 export const VIEWPORT_HEIGHT = 540
@@ -28,7 +35,25 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, MenuScene, InstructionScene, SettingsScene, CheckpointScene, BossIntroScene, GameScene, PauseScene, WinScene, LoseScene],
+  scene: [
+    BootScene,
+    MenuScene,
+    BriefingScene,
+    ChapterCardScene,
+    DialogueScene,
+    InstructionScene,
+    SettingsScene,
+    CheckpointScene,
+    BossIntroScene,
+    RewardScene,
+    RouteScene,
+    GameScene,
+    CausewayScene,
+    PauseScene,
+    WinScene,
+    LoseScene,
+    ResultsScene,
+  ],
   render: {
     pixelArt: false,
     antialias: true,
@@ -38,4 +63,3 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
 }
-

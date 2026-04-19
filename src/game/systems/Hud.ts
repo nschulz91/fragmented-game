@@ -33,6 +33,7 @@ export class Hud {
     dashReady: boolean
     parryReady: boolean
     pulseReady: boolean
+    chargeReady?: boolean
     shieldCharges: number
     label: string
     objective: string
@@ -63,7 +64,7 @@ export class Hud {
     this.texts.wave.setText(input.label)
     this.texts.health.setText(`Health ${Math.ceil(input.playerHealth)} / ${input.playerMaxHealth}   Shields ${input.shieldCharges}`)
     this.texts.ability.setText(
-      `Slash ${input.slashReady ? 'ready' : 'cd'}   Dash ${input.dashReady ? 'ready' : 'cd'}   Parry ${input.parryReady ? 'ready' : 'cd'}   Pulse ${input.pulseReady ? 'ready' : 'cd'}`
+      `Slash ${input.slashReady ? 'ready' : 'cd'}   Dash ${input.dashReady ? 'ready' : 'cd'}   Parry ${input.parryReady ? 'ready' : 'cd'}   Pulse ${input.pulseReady ? 'ready' : 'cd'}   Charge ${input.chargeReady ? 'ready' : 'cd'}`
     )
     this.texts.perk.setText(`${input.buffLabel}   |   ${input.perkLabel}`)
     this.texts.objective.setText(input.objective)
@@ -75,4 +76,3 @@ export class Hud {
     Object.values(this.texts).forEach((text) => text.destroy())
   }
 }
-

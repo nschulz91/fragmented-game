@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { instructionLines, namedFactions } from '../content/gameText'
 import { audioDirector } from '../systems/AudioDirector'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
-import { setLoreText, setObjectiveText, setStatusText } from '../../ui/shell'
+import { setHeaderText, setLoreText, setObjectiveText, setPromptText, setStatusText } from '../../ui/shell'
 
 export class InstructionScene extends Phaser.Scene {
   private enterKey?: Phaser.Input.Keyboard.Key
@@ -16,12 +16,15 @@ export class InstructionScene extends Phaser.Scene {
     this.registry.set('renderState', {
       ...(this.registry.get('renderState') ?? {}),
       mode: 'instructions',
+      flow: 'instructions',
     })
-    setStatusText('Briefing active. Enter deploys Charlie.')
-    setObjectiveText('Complete three waves, choose one buff and one faction perk, then break the warden.')
+    setStatusText('How-to-play screen active.')
+    setObjectiveText('Review the full two-chapter kit before entering the run briefing.')
     setLoreText(
-      `Allied traces remain from ${namedFactions.join(', ')}. Charlie only gets one support line per run, so the checkpoint choice matters.`
+      `Allied traces remain from ${namedFactions.join(', ')}. Faction variants, relics, and challenge modifiers all feed into the same chapter run now.`
     )
+    setHeaderText('This screen is for controls only. Actual run setup happens in the mission briefing scene.')
+    setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South button opens briefing' : 'Enter opens briefing')
     audioDirector.playTrack('menu')
 
     this.add.rectangle(480, 270, 960, 540, 0x09141a, 0.86)
@@ -48,7 +51,7 @@ export class InstructionScene extends Phaser.Scene {
       wordWrap: { width: 760 },
     }).setOrigin(0.5)
 
-    this.add.text(480, 448, 'Press Enter or the south button to breach Lake Pixor.', {
+    this.add.text(480, 448, 'Press Enter or the south button to open the mission briefing.', {
       fontFamily: 'Georgia',
       fontSize: '22px',
       color: '#f5c978',
@@ -60,10 +63,10 @@ export class InstructionScene extends Phaser.Scene {
   update() {
     this.pad.sync(this.input.gamepad)
     if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-      this.scene.start('game')
+      this.scene.start('briefing')
     }
     if (this.pad.justPressed(GamepadButtons.South) || this.pad.justPressed(GamepadButtons.Start)) {
-      this.scene.start('game')
+      this.scene.start('briefing')
     }
   }
 }

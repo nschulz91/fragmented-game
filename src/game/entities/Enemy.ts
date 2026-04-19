@@ -51,6 +51,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (this.kind === 'shade') this.updateShade(now, player)
     if (this.kind === 'cultist') this.updateCultist(now, player)
     if (this.kind === 'brute') this.updateBrute(now, player)
+    if (this.kind === 'embermage') this.updateEmbermage(now, player)
+    if (this.kind === 'ashhound') this.updateAshhound(now, player)
   }
 
   private updateShade(now: number, player: Phaser.GameObjects.Sprite) {
@@ -127,6 +129,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
           this.scene.physics.velocityFromRotation(angle + delta, 210, (bolt.body as Phaser.Physics.Arcade.Body).velocity)
           bolt.setData('damage', 10)
           bolt.setData('expiresAt', now + 3400)
+          bolt.setData('parryable', true)
         })
       }
       return
@@ -164,10 +167,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (this.stateLabel === 'telegraph') {
       this.setVelocity(0, 0)
       this.telegraph.fillStyle(0xff7842, 0.12)
-      this.telegraph.fillRect(this.x - 22, this.y - 18, 140, 36)
+      this.telegraph.fillCircle(this.x + Math.cos(this.attackAngle) * 70, this.y + Math.sin(this.attackAngle) * 70, 38)
       this.telegraph.lineStyle(3, 0xffb58b, 0.85)
-      this.telegraph.strokeRect(this.x - 22, this.y - 18, 140, 36)
-      this.telegraph.rotation = this.attackAngle
+      this.telegraph.strokeCircle(this.x + Math.cos(this.attackAngle) * 70, this.y + Math.sin(this.attackAngle) * 70, 42)
       if (now >= this.stateUntil) {
         this.stateLabel = 'charge'
         this.stateUntil = now + 360
@@ -188,6 +190,90 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.nextAttackAt = now + 2200
       this.stateLabel = 'telegraph'
       this.stateUntil = now + 620
+      this.attackAngle = angle
+      this.setVelocity(0, 0)
+    }
+  }
+
+  private updateEmbermage(now: number, player: Phaser.GameObjects.Sprite) {
+    const body = this.body as Phaser.Physics.Arcade.Body
+    const distance = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y)
+    const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y)
+    const slowScale = now < this.slowUntil ? 0.45 : 1
+
+    if (this.stateLabel === 'telegraph') {
+      this.setVelocity(0, 0)
+      this.telegraph.fillStyle(0xff8a5d, 0.14)
+      this.telegraph.fillCircle(player.x, player.y, 46)
+      this.telegraph.lineStyle(3, 0xffca82, 0.82)
+      this.telegraph.strokeCircle(player.x, player.y, 52)
+      if (now >= this.stateUntil) {
+        this.stateLabel = 'cast'
+        this.nextAttackAt = now + 2100
+        const bolt = this.enemyProjectiles.create(this.x, this.y, 'ember-bolt') as Phaser.Physics.Arcade.Image
+        bolt.setDepth(14)
+        bolt.setTint(0xffb46c)
+        bolt.setCircle(7)
+        this.scene.physics.velocityFromRotation(angle, 240, (bolt.body as Phaser.Physics.Arcade.Body).velocity)
+        bolt.setData('damage', 12)
+        bolt.setData('expiresAt', now + 3000)
+        bolt.setData('parryable', true)
+      }
+      return
+    }
+
+    const desired = distance > 260 ? this.moveSpeed * slowScale : distance < 180 ? -this.moveSpeed * 0.58 * slowScale : 0
+    this.scene.physics.velocityFromRotation(angle, desired, body.velocity)
+    this.stateLabel = 'position'
+
+    if (distance < 360 && now >= this.nextAttackAt) {
+      this.stateLabel = 'telegraph'
+      this.stateUntil = now + 680
+      this.setVelocity(0, 0)
+    }
+  }
+
+  private updateAshhound(now: number, player: Phaser.GameObjects.Sprite) {
+    const body = this.body as Phaser.Physics.Arcade.Body
+    const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y)
+    const distance = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y)
+    const slowScale = now < this.slowUntil ? 0.5 : 1
+
+    if (this.stateLabel === 'pounce') {
+      if (now >= this.stateUntil) {
+        this.stateLabel = 'recover'
+        this.stateUntil = now + 220
+        this.setVelocity(0, 0)
+      }
+      return
+    }
+
+    if (this.stateLabel === 'telegraph') {
+      this.setVelocity(0, 0)
+      this.telegraph.lineStyle(3, 0xffe4ab, 0.8)
+      this.telegraph.strokeCircle(this.x, this.y, 26)
+      this.telegraph.lineStyle(3, 0xffb061, 0.7)
+      this.telegraph.strokeLineShape(new Phaser.Geom.Line(this.x, this.y, this.x + Math.cos(this.attackAngle) * 120, this.y + Math.sin(this.attackAngle) * 120))
+      if (now >= this.stateUntil) {
+        this.stateLabel = 'pounce'
+        this.stateUntil = now + 260
+        this.scene.physics.velocityFromRotation(this.attackAngle, 360, body.velocity)
+      }
+      return
+    }
+
+    if (this.stateLabel === 'recover' && now < this.stateUntil) {
+      this.setVelocity(0, 0)
+      return
+    }
+
+    this.scene.physics.velocityFromRotation(angle, this.moveSpeed * slowScale, body.velocity)
+    this.stateLabel = 'hunt'
+
+    if (distance < 220 && now >= this.nextAttackAt) {
+      this.nextAttackAt = now + 1600
+      this.stateLabel = 'telegraph'
+      this.stateUntil = now + 260
       this.attackAngle = angle
       this.setVelocity(0, 0)
     }
@@ -219,4 +305,3 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     return super.destroy(fromScene)
   }
 }
-

@@ -11,8 +11,8 @@ export function mountShell() {
     <aside class="panel">
       <header class="brand-block">
         <p class="eyebrow">Fragmented</p>
-        <h1 class="title">Lake Pixor Trial</h1>
-        <p class="subtitle">Combat-first breach simulation with faction support, boss checkpointing, and a full local browser play path.</p>
+        <h1 class="title">Warden Aftermath</h1>
+        <p class="subtitle">Two-chapter breach run with relic unlocks, challenge modifiers, chapter cards, and a public browser build.</p>
       </header>
 
       <section class="stat-block mission">
@@ -32,12 +32,16 @@ export function mountShell() {
 
       <section class="meta-strip">
         <div>
-          <span class="meta-label">Playable</span>
-          <strong>Local dev + preview build</strong>
+          <span class="meta-label">Prompt Mode</span>
+          <strong id="prompt-text">Keyboard prompts active</strong>
+        </div>
+        <div>
+          <span class="meta-label">Meta Progress</span>
+          <strong id="progress-text">No relics unlocked yet</strong>
         </div>
         <div>
           <span class="meta-label">Region</span>
-          <strong>Lake Pixor, Parxillia</strong>
+          <strong id="region-text">Lake Pixor -> Breach Road -> Cinder Causeway</strong>
         </div>
       </section>
     </aside>
@@ -45,14 +49,14 @@ export function mountShell() {
     <section class="viewport-card">
       <div class="viewport-header">
         <div>
-          <strong>Combat sandbox</strong>
-          <span>Single-canvas action scene with menu overlays, checkpoint upgrades, and boss-phase scripting.</span>
+          <strong>Chapter run</strong>
+          <span id="header-text">Lake Pixor breach, reward room, route traversal, and a second playable region.</span>
         </div>
       </div>
       <div id="game-container"></div>
       <div class="status-line">
         <span id="status-text"></span>
-        <span id="warning-text" class="danger">Water remains toxic to Charlie.</span>
+        <span id="warning-text" class="danger">Hazards change by chapter. Toxic water and fire vents both punish greed.</span>
       </div>
     </section>
   `
@@ -79,3 +83,22 @@ export function setControlsText(lines: string[]) {
   target.innerHTML = lines.map((line) => `<li>${line}</li>`).join('')
 }
 
+export function setPromptText(text: string) {
+  const target = document.querySelector<HTMLElement>('#prompt-text')
+  if (target) target.textContent = text
+}
+
+export function setProgressText(text: string) {
+  const target = document.querySelector<HTMLElement>('#progress-text')
+  if (target) target.textContent = text
+}
+
+export function setRegionText(text: string) {
+  const target = document.querySelector<HTMLElement>('#region-text')
+  if (target) target.textContent = text
+}
+
+export function setHeaderText(text: string) {
+  const target = document.querySelector<HTMLElement>('#header-text')
+  if (target) target.textContent = text
+}

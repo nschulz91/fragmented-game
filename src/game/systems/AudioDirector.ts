@@ -12,7 +12,7 @@ type SfxName =
   | 'lose'
   | 'shield'
 
-type TrackName = 'menu' | 'ambient' | 'none'
+type TrackName = 'menu' | 'ambient' | 'route' | 'causeway' | 'none'
 
 class AudioDirector {
   private context?: AudioContext
@@ -100,6 +100,16 @@ class AudioDirector {
             [261.6, 329.6, 392.0],
             [293.6, 349.2, 440.0],
           ]
+        : track === 'route'
+          ? [
+              [130.8, 196.0, 293.6],
+              [146.8, 220.0, 329.6],
+            ]
+          : track === 'causeway'
+            ? [
+                [87.3, 130.8, 174.6],
+                [98.0, 146.8, 196.0],
+              ]
         : [
             [110.0, 164.8],
             [98.0, 146.8],
@@ -112,16 +122,16 @@ class AudioDirector {
       notes.forEach((freq, index) => {
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
-        osc.type = track === 'menu' ? 'triangle' : 'sine'
+        osc.type = track === 'menu' ? 'triangle' : track === 'causeway' ? 'sawtooth' : 'sine'
         osc.frequency.setValueAtTime(freq, ctx.currentTime)
-        gain.gain.setValueAtTime(this.getMusicGain(track === 'menu' ? 0.02 : 0.015), ctx.currentTime)
+        gain.gain.setValueAtTime(this.getMusicGain(track === 'menu' ? 0.02 : track === 'causeway' ? 0.018 : 0.015), ctx.currentTime)
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2 + index * 0.04)
         osc.connect(gain)
         gain.connect(ctx.destination)
         osc.start(ctx.currentTime)
         osc.stop(ctx.currentTime + 1.4 + index * 0.04)
       })
-    }, track === 'menu' ? 1700 : 2200)
+    }, track === 'menu' ? 1700 : track === 'route' ? 1900 : track === 'causeway' ? 1600 : 2200)
   }
 
   stopTrack() {

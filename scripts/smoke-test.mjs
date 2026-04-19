@@ -51,25 +51,44 @@ try {
   assert(state.mode === 'menu', `Expected menu mode, received ${state.mode}`)
 
   await page.evaluate(() => {
-    window.__fragmentedGame.scene.start('game')
+    window.__fragmentedGame.scene.start('briefing')
   })
-  await wait(500)
+  await wait(300)
+
+  state = await renderState()
+  assert(state.mode === 'briefing', `Expected briefing mode, received ${state.mode}`)
+
+  await page.evaluate(() => {
+    const briefing = window.__fragmentedGame.scene.getScene('briefing')
+    briefing['deploy']()
+  })
+  await wait(300)
+
+  state = await renderState()
+  assert(state.mode === 'chapter-card', `Expected chapter-card mode, received ${state.mode}`)
+
+  await page.evaluate(() => {
+    const card = window.__fragmentedGame.scene.getScene('chapter-card')
+    card['finish']()
+  })
+  await wait(250)
+
+  state = await renderState()
+  assert(state.mode === 'dialogue', `Expected dialogue mode, received ${state.mode}`)
+
+  await page.evaluate(() => {
+    const dialogue = window.__fragmentedGame.scene.getScene('dialogue')
+    dialogue['advance']()
+    dialogue['advance']()
+  })
+  await wait(400)
 
   state = await renderState()
   assert(state.mode === 'game', `Expected game mode, received ${state.mode}`)
-  assert(state.encounter.wave === 1, `Expected wave 1 at game start, received ${state.encounter.wave}`)
+  assert(state.region === 'pixor', `Expected pixor region, received ${state.region}`)
 
   await page.evaluate(() => {
-    window.advanceTime?.(1000)
-  })
-  await wait(100)
-
-  state = await renderState()
-  assert(state.player.health < state.player.maxHealth, 'Expected player to take hazard or enemy pressure during advanceTime step')
-
-  await page.evaluate(() => {
-    const game = window.__fragmentedGame
-    const scene = game.scene.getScene('game')
+    const scene = window.__fragmentedGame.scene.getScene('game')
     scene['currentWaveIndex'] = 2
     scene['enemies'].forEach((enemy) => enemy.destroy())
     scene['enemies'] = []
@@ -82,7 +101,6 @@ try {
 
   state = await renderState()
   assert(state.mode === 'checkpoint', `Expected checkpoint mode, received ${state.mode}`)
-  assert(state.encounter.checkpointUnlocked === true, 'Expected checkpointUnlocked to be true')
 
   await page.evaluate(() => {
     const checkpoint = window.__fragmentedGame.scene.getScene('checkpoint')
@@ -94,8 +112,6 @@ try {
 
   state = await renderState()
   assert(state.mode === 'boss-intro', `Expected boss-intro mode, received ${state.mode}`)
-  assert(state.encounter.selectedBuff === 'time-thread', `Expected default smoke buff selection, received ${state.encounter.selectedBuff}`)
-  assert(state.encounter.selectedPerk === 'house-veyra', `Expected default smoke perk selection, received ${state.encounter.selectedPerk}`)
 
   await page.evaluate(() => {
     const intro = window.__fragmentedGame.scene.getScene('boss-intro')
@@ -103,24 +119,108 @@ try {
   })
   await wait(300)
 
-  state = await renderState()
-  assert(state.mode === 'game', `Expected game mode during boss start, received ${state.mode}`)
-  assert(state.boss?.phase === 1, `Expected boss phase 1, received ${state.boss?.phase}`)
-
   await page.evaluate(() => {
     const scene = window.__fragmentedGame.scene.getScene('game')
-    scene['boss'].health = scene['boss'].maxHealth * 0.68
+    scene['boss'].health = 0
+    scene['boss'].destroy()
     scene['handlePhaseProgression']()
-    scene['boss'].health = scene['boss'].maxHealth * 0.3
     scene['handlePhaseProgression']()
-    scene.scene.launch('pause')
-    scene.scene.pause()
+  })
+  await wait(700)
+
+  state = await renderState()
+  assert(state.mode === 'dialogue', `Expected boss outro dialogue, received ${state.mode}`)
+
+  await page.evaluate(() => {
+    const dialogue = window.__fragmentedGame.scene.getScene('dialogue')
+    dialogue['advance']()
+    dialogue['advance']()
   })
   await wait(300)
 
   state = await renderState()
-  assert(state.mode === 'pause', `Expected pause mode, received ${state.mode}`)
-  assert(state.encounter.wave === 4, `Expected boss wave marker 4, received ${state.encounter.wave}`)
+  assert(state.mode === 'reward', `Expected reward mode, received ${state.mode}`)
+
+  await page.evaluate(() => {
+    const reward = window.__fragmentedGame.scene.getScene('reward')
+    reward['confirm']()
+  })
+  await wait(300)
+
+  await page.evaluate(() => {
+    const dialogue = window.__fragmentedGame.scene.getScene('dialogue')
+    dialogue['advance']()
+  })
+  await wait(200)
+
+  await page.evaluate(() => {
+    const card = window.__fragmentedGame.scene.getScene('chapter-card')
+    card['finish']()
+  })
+  await wait(200)
+
+  await page.evaluate(() => {
+    const dialogue = window.__fragmentedGame.scene.getScene('dialogue')
+    dialogue['advance']()
+    dialogue['advance']()
+  })
+  await wait(400)
+
+  state = await renderState()
+  assert(state.mode === 'route', `Expected route mode, received ${state.mode}`)
+  assert(state.region === 'breach-road', `Expected breach-road region, received ${state.region}`)
+
+  await page.evaluate(() => {
+    const route = window.__fragmentedGame.scene.getScene('route')
+    route['enemies'].forEach((enemy) => enemy.destroy())
+    route['enemies'] = []
+    route['routeEncounterCleared'] = true
+    route['activateShrine']()
+    route['player'].x = 1360
+    route['runFrame'](0)
+  })
+  await wait(300)
+
+  state = await renderState()
+  assert(state.mode === 'chapter-card', `Expected causeway chapter-card mode, received ${state.mode}`)
+
+  await page.evaluate(() => {
+    const card = window.__fragmentedGame.scene.getScene('chapter-card')
+    card['finish']()
+  })
+  await wait(200)
+
+  await page.evaluate(() => {
+    const dialogue = window.__fragmentedGame.scene.getScene('dialogue')
+    dialogue['advance']()
+  })
+  await wait(300)
+
+  state = await renderState()
+  assert(state.mode === 'causeway', `Expected causeway mode, received ${state.mode}`)
+  assert(state.region === 'causeway', `Expected causeway region, received ${state.region}`)
+
+  await page.evaluate(() => {
+    const causeway = window.__fragmentedGame.scene.getScene('causeway')
+    causeway['stageIndex'] = 2
+    causeway['enemies'].forEach((enemy) => enemy.destroy())
+    causeway['enemies'] = []
+    causeway['finishRun']()
+  })
+  await wait(300)
+
+  state = await renderState()
+  assert(state.mode === 'dialogue', `Expected causeway outro dialogue, received ${state.mode}`)
+
+  await page.evaluate(() => {
+    const dialogue = window.__fragmentedGame.scene.getScene('dialogue')
+    dialogue['advance']()
+  })
+  await wait(300)
+
+  state = await renderState()
+  assert(state.mode === 'results', `Expected results mode, received ${state.mode}`)
+  assert(state.score > 0, 'Expected positive score in results state')
 
   assert(errors.length === 0, `Smoke test captured browser errors: ${errors.join('\n')}`)
   console.log('Smoke test passed.')

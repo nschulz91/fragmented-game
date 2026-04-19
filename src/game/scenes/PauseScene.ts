@@ -79,17 +79,22 @@ export class PauseScene extends Phaser.Scene {
       if (label === 'Resume') {
         this.resumeRun()
       } else if (label === 'Restart from Checkpoint') {
-        runState.resumedFromCheckpoint = !!runState.checkpoint.unlocked
-        this.registry.set('runState', runState)
-        this.scene.stop('game')
-        this.scene.stop()
-        this.scene.start('game')
+        if (runState.currentRegion === 'pixor' && runState.checkpoint.unlocked) {
+          runState.resumedFromCheckpoint = true
+          this.registry.set('runState', runState)
+          this.stopCurrentGameplayScene()
+          this.scene.stop()
+          this.scene.start('game')
+        } else {
+          this.confirmAction = 'restart-run'
+          this.render()
+        }
       } else if (label === 'Restart Run') {
         if (this.confirmAction === 'restart-run') {
           this.registry.set('runState', { ...createRunState(runState.seed), seed: runState.seed })
-          this.scene.stop('game')
+          this.stopCurrentGameplayScene()
           this.scene.stop()
-          this.scene.start('game')
+          this.scene.start('briefing')
         } else {
           this.confirmAction = 'restart-run'
           this.render()
@@ -97,7 +102,7 @@ export class PauseScene extends Phaser.Scene {
       } else {
         if (this.confirmAction === 'quit-menu') {
           this.registry.set('runState', createRunState(runState.seed))
-          this.scene.stop('game')
+          this.stopCurrentGameplayScene()
           this.scene.stop()
           this.scene.start('menu')
         } else {
@@ -109,8 +114,16 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private resumeRun() {
-    this.scene.resume('game')
+    const runState = this.registry.get('runState')
+    const targetScene = runState.currentRegion === 'causeway' ? 'causeway' : runState.currentRegion === 'breach-road' ? 'route' : 'game'
+    this.scene.resume(targetScene)
     this.scene.stop()
+  }
+
+  private stopCurrentGameplayScene() {
+    const runState = this.registry.get('runState')
+    const targetScene = runState.currentRegion === 'causeway' ? 'causeway' : runState.currentRegion === 'breach-road' ? 'route' : 'game'
+    this.scene.stop(targetScene)
   }
 
   private render() {

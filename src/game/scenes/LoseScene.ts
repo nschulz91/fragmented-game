@@ -2,7 +2,8 @@ import Phaser from 'phaser'
 import { loseSummary } from '../content/gameText'
 import { audioDirector } from '../systems/AudioDirector'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
-import { setLoreText, setObjectiveText, setStatusText } from '../../ui/shell'
+import { createRunState, type RunState } from '../state'
+import { setHeaderText, setLoreText, setObjectiveText, setPromptText, setStatusText } from '../../ui/shell'
 
 export class LoseScene extends Phaser.Scene {
   private enterKey?: Phaser.Input.Keyboard.Key
@@ -14,10 +15,10 @@ export class LoseScene extends Phaser.Scene {
   }
 
   create() {
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
     const checkpointText = runState.checkpoint.unlocked
       ? 'Enter restarts at the boss intro. R restarts the full run.'
-      : 'Enter restarts the full run.'
+      : 'Enter returns to the mission briefing. R hard resets the run state.'
 
     this.registry.set('renderState', {
       ...(this.registry.get('renderState') ?? {}),
@@ -33,8 +34,10 @@ export class LoseScene extends Phaser.Scene {
     })
 
     setStatusText('Charlie was forced out of the breach.')
-    setObjectiveText(runState.checkpoint.unlocked ? 'Checkpoint intact. Restart from the boss intro.' : 'Restart the full Lake Pixor run.')
+    setObjectiveText(runState.checkpoint.unlocked ? 'Checkpoint intact. Restart from the boss intro.' : 'Return to the briefing and start a fresh run.')
     setLoreText(loseSummary)
+    setHeaderText('Loss does not remove meta progression, but current run state is discarded.')
+    setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South button returns to briefing or checkpoint' : 'Enter returns to briefing or checkpoint')
     audioDirector.playTrack('menu')
 
     this.add.rectangle(480, 270, 960, 540, 0x12080b, 0.92)
@@ -67,26 +70,35 @@ export class LoseScene extends Phaser.Scene {
 
   update() {
     this.pad.sync(this.input.gamepad)
-    const runState = this.registry.get('runState')
+    const runState = this.registry.get('runState') as RunState
 
     if (this.resetKey && Phaser.Input.Keyboard.JustDown(this.resetKey)) {
-      runState.resumedFromCheckpoint = false
-      this.registry.set('runState', runState)
-      this.scene.start('game')
+      this.registry.set('runState', createRunState(runState.seed))
+      this.scene.start('briefing')
       return
     }
 
     if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-      runState.resumedFromCheckpoint = !!runState.checkpoint.unlocked
-      this.registry.set('runState', runState)
-      this.scene.start('game')
+      if (runState.currentRegion === 'pixor' && runState.checkpoint.unlocked) {
+        runState.resumedFromCheckpoint = true
+        this.registry.set('runState', runState)
+        this.scene.start('game')
+      } else {
+        this.registry.set('runState', createRunState(runState.seed))
+        this.scene.start('briefing')
+      }
       return
     }
 
     if (this.pad.justPressed(GamepadButtons.South) || this.pad.justPressed(GamepadButtons.Start)) {
-      runState.resumedFromCheckpoint = !!runState.checkpoint.unlocked
-      this.registry.set('runState', runState)
-      this.scene.start('game')
+      if (runState.currentRegion === 'pixor' && runState.checkpoint.unlocked) {
+        runState.resumedFromCheckpoint = true
+        this.registry.set('runState', runState)
+        this.scene.start('game')
+      } else {
+        this.registry.set('runState', createRunState(runState.seed))
+        this.scene.start('briefing')
+      }
     }
   }
 }

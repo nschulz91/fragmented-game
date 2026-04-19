@@ -22,3 +22,11 @@ Original prompt: Implement the Fragmented V2 expansion plan with combat polish, 
   - Lowered default music volume for less aggressive BGM.
   - Added pause-menu confirmation for destructive actions like full restart and quitting to menu.
   - Added `npm run smoke` as a repeatable Playwright regression check against the production preview build.
+- Warden Aftermath milestone:
+  - Expanded the game into a chapter-based run with mission briefing, chapter cards, portrait-card dialogue, reward room, Breach Road transition, Cinder Causeway, and results scene.
+  - Added persistent meta progression for unlocked relics, unlocked challenge modifiers, best rank/score, highest unlocked region, and settings.
+  - Added Charged Strike, faction variants, replay score multipliers, and a second-region enemy expansion with embermages and ashhounds.
+  - Reworked the smoke test to cover the full two-chapter flow from menu to results.
+- Latest verification:
+  - `npm run build` passes after the chapter expansion.
+  - `npm run smoke` passes against the new menu -> briefing -> Pixor -> reward -> route -> Causeway -> results flow.
