@@ -3,88 +3,90 @@ import { setControlsText, setLoreText, setObjectiveText, setStatusText } from '.
 import { audioDirector } from '../systems/AudioDirector'
 import { createRunState, loadMetaProgress, loadSettings, getSeedFromLocation } from '../state'
 
+const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('boot')
   }
 
   preload() {
-    this.load.spritesheet('charlie-sheet', '/assets/generated/charlie_sheet_final.png', {
+    this.load.spritesheet('charlie-sheet', assetPath('/assets/generated/charlie_sheet_final.png'), {
       frameWidth: 220,
       frameHeight: 320,
     })
-    this.load.spritesheet('shade-sheet', '/assets/generated/shade_sheet_final.png', {
+    this.load.spritesheet('shade-sheet', assetPath('/assets/generated/shade_sheet_final.png'), {
       frameWidth: 180,
       frameHeight: 264,
     })
-    this.load.spritesheet('cultist-sheet', '/assets/generated/cultist_sheet_final.png', {
+    this.load.spritesheet('cultist-sheet', assetPath('/assets/generated/cultist_sheet_final.png'), {
       frameWidth: 176,
       frameHeight: 252,
     })
-    this.load.spritesheet('brute-sheet', '/assets/generated/brute_sheet_final.png', {
+    this.load.spritesheet('brute-sheet', assetPath('/assets/generated/brute_sheet_final.png'), {
       frameWidth: 224,
       frameHeight: 320,
     })
-    this.load.spritesheet('embermage-sheet', '/assets/generated/embermage_sheet_final.png', {
+    this.load.spritesheet('embermage-sheet', assetPath('/assets/generated/embermage_sheet_final.png'), {
       frameWidth: 164,
       frameHeight: 252,
     })
-    this.load.spritesheet('ashhound-sheet', '/assets/generated/ashhound_sheet_final.png', {
+    this.load.spritesheet('ashhound-sheet', assetPath('/assets/generated/ashhound_sheet_final.png'), {
       frameWidth: 240,
       frameHeight: 164,
     })
-    this.load.spritesheet('warden-sheet', '/assets/generated/warden_sheet_final.png', {
+    this.load.spritesheet('warden-sheet', assetPath('/assets/generated/warden_sheet_final.png'), {
       frameWidth: 286,
       frameHeight: 360,
     })
 
-    this.load.image('bg-pixor', '/assets/generated/pixor_painted.png')
-    this.load.image('bg-route', '/assets/generated/route_painted.png')
-    this.load.image('bg-causeway', '/assets/generated/causeway_painted.png')
+    this.load.image('bg-pixor', assetPath('/assets/generated/pixor_painted.png'))
+    this.load.image('bg-route', assetPath('/assets/generated/route_painted.png'))
+    this.load.image('bg-causeway', assetPath('/assets/generated/causeway_painted.png'))
 
-    this.load.image('portrait-charlie', '/assets/generated/portrait_charlie_painted.png')
-    this.load.image('portrait-warden', '/assets/generated/portrait_warden_painted.png')
-    this.load.image('portrait-veyra', '/assets/generated/portrait_veyra_painted.png')
-    this.load.image('portrait-scout', '/assets/generated/portrait_scout_painted.png')
-    this.load.image('portrait-glass', '/assets/generated/portrait_glass_painted.png')
-    this.load.image('charlie-fullbody', '/assets/generated/charlie_fullbody.png')
-    this.load.image('charlie-turnaround', '/assets/generated/charlie_turnaround.png')
-    this.load.image('fragmented-key-art', '/assets/generated/fragmented_key_art.png')
+    this.load.image('portrait-charlie', assetPath('/assets/generated/portrait_charlie_painted.png'))
+    this.load.image('portrait-warden', assetPath('/assets/generated/portrait_warden_painted.png'))
+    this.load.image('portrait-veyra', assetPath('/assets/generated/portrait_veyra_painted.png'))
+    this.load.image('portrait-scout', assetPath('/assets/generated/portrait_scout_painted.png'))
+    this.load.image('portrait-glass', assetPath('/assets/generated/portrait_glass_painted.png'))
+    this.load.image('charlie-fullbody', assetPath('/assets/generated/charlie_fullbody.png'))
+    this.load.image('charlie-turnaround', assetPath('/assets/generated/charlie_turnaround.png'))
+    this.load.image('fragmented-key-art', assetPath('/assets/generated/fragmented_key_art.png'))
 
-    this.load.svg('pulse-ring', '/assets/fx/pulse-ring.svg')
-    this.load.svg('shield', '/assets/fx/shield-orb.svg')
-    this.load.svg('shrine', '/assets/fx/shrine.svg')
-    this.load.svg('relic-core', '/assets/fx/relic-core.svg')
-    this.load.spritesheet('fx-slash-sheet', '/assets/generated/fx_slash_sheet.png', {
+    this.load.svg('pulse-ring', assetPath('/assets/fx/pulse-ring.svg'))
+    this.load.svg('shield', assetPath('/assets/fx/shield-orb.svg'))
+    this.load.svg('shrine', assetPath('/assets/fx/shrine.svg'))
+    this.load.svg('relic-core', assetPath('/assets/fx/relic-core.svg'))
+    this.load.spritesheet('fx-slash-sheet', assetPath('/assets/generated/fx_slash_sheet.png'), {
       frameWidth: 220,
       frameHeight: 160,
     })
-    this.load.spritesheet('fx-dash-sheet', '/assets/generated/fx_dash_sheet.png', {
+    this.load.spritesheet('fx-dash-sheet', assetPath('/assets/generated/fx_dash_sheet.png'), {
       frameWidth: 240,
       frameHeight: 120,
     })
-    this.load.spritesheet('fx-pulse-sheet', '/assets/generated/fx_pulse_sheet.png', {
+    this.load.spritesheet('fx-pulse-sheet', assetPath('/assets/generated/fx_pulse_sheet.png'), {
       frameWidth: 260,
       frameHeight: 220,
     })
-    this.load.spritesheet('fx-parry-sheet', '/assets/generated/fx_parry_sheet.png', {
+    this.load.spritesheet('fx-parry-sheet', assetPath('/assets/generated/fx_parry_sheet.png'), {
       frameWidth: 160,
       frameHeight: 160,
     })
-    this.load.spritesheet('fx-hit-sheet', '/assets/generated/fx_hit_sheet.png', {
+    this.load.spritesheet('fx-hit-sheet', assetPath('/assets/generated/fx_hit_sheet.png'), {
       frameWidth: 160,
       frameHeight: 160,
     })
-    this.load.spritesheet('fx-charge-sheet', '/assets/generated/fx_charge_sheet.png', {
+    this.load.spritesheet('fx-charge-sheet', assetPath('/assets/generated/fx_charge_sheet.png'), {
       frameWidth: 260,
       frameHeight: 260,
     })
-    this.load.image('stage-pixor-tile', '/assets/generated/stage_pixor_tile.png')
-    this.load.image('stage-route-tile', '/assets/generated/stage_route_tile.png')
-    this.load.image('stage-causeway-tile', '/assets/generated/stage_causeway_tile.png')
-    this.load.image('stage-pixor-prop', '/assets/generated/stage_pixor_prop.png')
-    this.load.image('stage-route-prop', '/assets/generated/stage_route_prop.png')
-    this.load.image('stage-causeway-prop', '/assets/generated/stage_causeway_prop.png')
+    this.load.image('stage-pixor-tile', assetPath('/assets/generated/stage_pixor_tile.png'))
+    this.load.image('stage-route-tile', assetPath('/assets/generated/stage_route_tile.png'))
+    this.load.image('stage-causeway-tile', assetPath('/assets/generated/stage_causeway_tile.png'))
+    this.load.image('stage-pixor-prop', assetPath('/assets/generated/stage_pixor_prop.png'))
+    this.load.image('stage-route-prop', assetPath('/assets/generated/stage_route_prop.png'))
+    this.load.image('stage-causeway-prop', assetPath('/assets/generated/stage_causeway_prop.png'))
   }
 
   create() {
