@@ -3,7 +3,7 @@ import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { createRunState } from '../state'
 import { setStatusText } from '../../ui/shell'
 
-const pauseOptions = ['Resume', 'Restart from Checkpoint', 'Restart Run', 'Quit to Menu'] as const
+const pauseOptions = ['Resume', 'Controls Layout', 'Restart from Checkpoint', 'Restart Run', 'Quit to Menu'] as const
 type ConfirmAction = 'restart-run' | 'quit-menu' | null
 
 export class PauseScene extends Phaser.Scene {
@@ -34,10 +34,10 @@ export class PauseScene extends Phaser.Scene {
     setStatusText('Run paused.')
     this.keys = this.input.keyboard!.addKeys('UP,DOWN,ENTER,ESC') as PauseScene['keys']
     this.add.rectangle(480, 270, 960, 540, 0x020608, 0.7)
-    this.add.rectangle(480, 270, 440, 320, 0x09151b, 0.95).setStrokeStyle(2, 0xf5c978, 0.25)
+    this.add.rectangle(480, 270, 460, 356, 0x09151b, 0.95).setStrokeStyle(2, 0xf5c978, 0.25)
     this.add.text(480, 146, 'Paused', { fontFamily: 'Georgia', fontSize: '38px', color: '#fff0cc' }).setOrigin(0.5)
     pauseOptions.forEach((label, index) => {
-      const text = this.add.text(480, 218 + index * 46, label, {
+      const text = this.add.text(480, 206 + index * 42, label, {
         fontFamily: 'Georgia',
         fontSize: '24px',
         color: '#d4e0dc',
@@ -78,6 +78,9 @@ export class PauseScene extends Phaser.Scene {
       const runState = this.registry.get('runState')
       if (label === 'Resume') {
         this.resumeRun()
+      } else if (label === 'Controls Layout') {
+        this.scene.pause()
+        this.scene.launch('controls', { returnMode: 'pause' })
       } else if (label === 'Restart from Checkpoint') {
         if (runState.currentRegion === 'pixor' && runState.checkpoint.unlocked) {
           runState.resumedFromCheckpoint = true

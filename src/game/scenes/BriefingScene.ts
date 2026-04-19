@@ -3,11 +3,8 @@ import { briefingLines, factionVariantLabels, modifierLabels, relicLabels } from
 import { audioDirector } from '../systems/AudioDirector'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import {
-  challengeModifierCatalog,
   createRunState,
-  factionVariantCatalog,
   getScoreMultiplier,
-  relicCatalog,
   type ChallengeModifierId,
   type FactionVariantId,
   type MetaProgress,
@@ -65,36 +62,67 @@ export class BriefingScene extends Phaser.Scene {
 
     this.keys = this.input.keyboard!.addKeys('UP,DOWN,LEFT,RIGHT,ENTER,ESC') as BriefingScene['keys']
 
-    this.add.rectangle(480, 270, 960, 540, 0x081117, 0.92)
-    this.add.text(480, 78, 'Mission Briefing', {
+    this.add.image(480, 270, 'fragmented-key-art').setDisplaySize(960, 540).setAlpha(0.28)
+    this.add.rectangle(480, 270, 960, 540, 0x081117, 0.84)
+    this.add.rectangle(316, 272, 506, 430, 0x0b1419, 0.86).setStrokeStyle(1, 0xf5c978, 0.18)
+    this.add.rectangle(760, 270, 246, 396, 0x0b1419, 0.72).setStrokeStyle(1, 0xf5c978, 0.14)
+    this.add.image(760, 308, 'charlie-fullbody').setDisplaySize(224, 336).setAlpha(0.98)
+
+    this.add.text(316, 70, 'Mission Briefing', {
       fontFamily: 'Georgia',
-      fontSize: '42px',
+      fontSize: '36px',
       color: '#fff0cc',
     }).setOrigin(0.5)
 
-    this.add.text(480, 150, briefingLines.join('\n\n'), {
+    this.add.text(316, 138, 'Choose your faction rule, one relic, and an optional modifier before Charlie enters Lake Pixor.', {
       fontFamily: 'Georgia',
-      fontSize: '20px',
+      fontSize: '18px',
       color: '#e1ece8',
       align: 'center',
-      wordWrap: { width: 760 },
-      lineSpacing: 12,
+      wordWrap: { width: 404 },
+      lineSpacing: 8,
     }).setOrigin(0.5)
 
     rows.forEach((_row, index) => {
-      const text = this.add.text(480, 294 + index * 54, '', {
+      const text = this.add.text(316, 230 + index * 58, '', {
         fontFamily: 'Georgia',
-        fontSize: '24px',
+        fontSize: '19px',
         color: '#d8e8e2',
+        wordWrap: { width: 404 },
+        align: 'left',
       }).setOrigin(0.5)
       this.items.push(text)
     })
 
-    this.add.text(480, 498, 'Left/Right adjusts. Enter deploys. Esc returns to menu.', {
+    this.add.text(316, 478, 'Left/Right adjusts. Enter deploys. Esc returns to menu.', {
       fontFamily: 'Georgia',
-      fontSize: '18px',
+      fontSize: '16px',
       color: '#d5dfda',
       align: 'center',
+    }).setOrigin(0.5)
+
+    this.add.text(760, 102, 'Charlie Smith', {
+      fontFamily: 'Georgia',
+      fontSize: '22px',
+      color: '#f5c978',
+    }).setOrigin(0.5)
+
+    this.add.text(760, 136, 'Deploying into Lake Pixor with the current run loadout.', {
+      fontFamily: 'Georgia',
+      fontSize: '14px',
+      color: '#d8e8e2',
+      align: 'center',
+      wordWrap: { width: 198 },
+      lineSpacing: 6,
+    }).setOrigin(0.5)
+
+    this.add.text(760, 470, 'This choice locks the chapter rules for the run.\nPick a clean loadout and go.', {
+      fontFamily: 'Georgia',
+      fontSize: '15px',
+      color: '#e7efe9',
+      align: 'center',
+      wordWrap: { width: 198 },
+      lineSpacing: 7,
     }).setOrigin(0.5)
 
     this.render()
@@ -166,20 +194,14 @@ export class BriefingScene extends Phaser.Scene {
     const modifierId = this.modifierIds[this.modifierIndex]
     const scoreMultiplier = getScoreMultiplier(modifierId ? [modifierId] : [], factionId)
 
-    this.items[0].setText(`${
-      this.cursor === 0 ? '› ' : ''
-    }Faction Variant: ${factionVariantLabels[factionId]}  |  ${factionVariantCatalog[factionId].description}`)
+    this.items[0].setText(`${this.cursor === 0 ? '› ' : ''}Faction Variant\n${factionVariantLabels[factionId]}`)
     this.items[1].setText(
-      `${this.cursor === 1 ? '› ' : ''}Equipped Relic: ${
-        relicId ? `${relicLabels[relicId]}  |  ${relicCatalog[relicId].description}` : 'None'
-      }`
+      `${this.cursor === 1 ? '› ' : ''}Equipped Relic\n${relicId ? relicLabels[relicId] : 'None'}`
     )
     this.items[2].setText(
-      `${this.cursor === 2 ? '› ' : ''}Challenge Modifier: ${
-        modifierId ? `${modifierLabels[modifierId]}  |  ${challengeModifierCatalog[modifierId].description}` : 'None'
-      }`
+      `${this.cursor === 2 ? '› ' : ''}Challenge Modifier\n${modifierId ? modifierLabels[modifierId] : 'None'}`
     )
-    this.items[3].setText(`${this.cursor === 3 ? '› ' : ''}Deploy run  |  Score multiplier x${scoreMultiplier}`)
+    this.items[3].setText(`${this.cursor === 3 ? '› ' : ''}Deploy Run\nScore multiplier x${scoreMultiplier}`)
 
     this.items.forEach((item, index) => item.setColor(index === this.cursor ? '#f5c978' : '#d8e8e2'))
   }

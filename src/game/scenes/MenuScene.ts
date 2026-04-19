@@ -5,14 +5,14 @@ import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { createRunState, type MetaProgress } from '../state'
 import { setHeaderText, setLoreText, setObjectiveText, setProgressText, setPromptText, setRegionText, setStatusText } from '../../ui/shell'
 
-const menuOptions = ['Start Run', 'How to Play', 'Settings'] as const
+const menuOptions = ['Start Run', 'Controls Layout', 'How to Play', 'Settings'] as const
 
 export class MenuScene extends Phaser.Scene {
   private cursor = 0
   private readonly pad = new GamepadState()
   private entries: Phaser.GameObjects.Text[] = []
   private startKey?: Phaser.Input.Keyboard.Key
-  private keys!: Record<'UP' | 'DOWN' | 'ENTER', Phaser.Input.Keyboard.Key>
+  private keys!: Record<'UP' | 'DOWN' | 'ENTER' | 'ESC', Phaser.Input.Keyboard.Key>
 
   constructor() {
     super('menu')
@@ -43,7 +43,7 @@ export class MenuScene extends Phaser.Scene {
       rank: metaProgress.bestRunRank,
     })
 
-    setStatusText('Menu ready. Enter the run briefing, controls, or settings.')
+    setStatusText('Menu ready. Enter the run briefing, controls layout, or settings.')
     setObjectiveText('Prepare a two-chapter run through Lake Pixor, Breach Road, and the Cinder Causeway.')
     setLoreText(menuLore.join(' '))
     setHeaderText('Persistent relic unlocks, challenge modifiers, faction variants, and run ranking are now part of the route.')
@@ -60,46 +60,80 @@ export class MenuScene extends Phaser.Scene {
     setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South button confirms' : 'Enter confirms')
     audioDirector.playTrack('menu')
 
-    this.keys = this.input.keyboard!.addKeys('UP,DOWN,ENTER') as MenuScene['keys']
+    this.keys = this.input.keyboard!.addKeys('UP,DOWN,ENTER,ESC') as MenuScene['keys']
     this.startKey = this.keys.ENTER
 
-    this.add.rectangle(480, 270, 960, 540, 0x061015, 0.72)
-    this.add.text(480, 84, 'Fragmented', {
+    this.add.image(480, 270, 'fragmented-key-art').setDisplaySize(960, 540).setAlpha(0.54)
+    this.add.rectangle(480, 270, 960, 540, 0x04080c, 0.72)
+    this.add.rectangle(480, 80, 620, 112, 0x091219, 0.84).setStrokeStyle(2, 0xf5c978, 0.24)
+    this.add.rectangle(258, 324, 360, 300, 0x081116, 0.84).setStrokeStyle(1, 0xf5c978, 0.18)
+    this.add.rectangle(736, 322, 274, 362, 0x0a1318, 0.64).setStrokeStyle(1, 0xf5c978, 0.12)
+    this.add.image(742, 316, 'charlie-turnaround').setDisplaySize(228, 320).setAlpha(0.92)
+
+    this.add.text(480, 48, 'FRAGMENTED', {
       fontFamily: 'Georgia',
-      fontSize: '52px',
-      color: '#fff1ca',
+      fontSize: '56px',
+      fontStyle: 'bold',
+      color: '#fff3d0',
+      stroke: '#1a2428',
+      strokeThickness: 6,
     }).setOrigin(0.5)
 
-    this.add.text(480, 154, 'Warden Aftermath', {
+    this.add.text(480, 104, 'Warden Aftermath', {
       fontFamily: 'Georgia',
       fontSize: '24px',
-      color: '#bfd3d8',
+      color: '#c5d7da',
+      letterSpacing: 3,
     }).setOrigin(0.5)
 
-    this.add.text(480, 250, menuLore.join('\n\n'), {
+    this.add.text(258, 186, 'A shadow has broken Lake Pixor.\nCharlie is still following the trail.', {
       fontFamily: 'Georgia',
-      fontSize: '18px',
-      color: '#ebf3ee',
+      fontSize: '20px',
+      color: '#edf4ef',
       align: 'center',
-      wordWrap: { width: 710 },
-      lineSpacing: 10,
+      wordWrap: { width: 304 },
+      lineSpacing: 8,
     }).setOrigin(0.5)
 
     this.add.text(
-      480,
-      350,
-      `Best run: ${metaProgress.bestRunRank ?? 'none'}   |   Best score: ${metaProgress.bestRunScore}   |   Completed runs: ${metaProgress.completedRuns}`,
+      258,
+      248,
+      `Best run: ${metaProgress.bestRunRank ?? 'none'}   Score: ${metaProgress.bestRunScore}\nCompleted runs: ${metaProgress.completedRuns}   Relics: ${metaProgress.unlockedRelics.length}`,
       {
         fontFamily: 'Georgia',
-        fontSize: '18px',
-        color: '#d9e8df',
+        fontSize: '14px',
+        color: '#cfddd7',
+        align: 'center',
+        wordWrap: { width: 304 },
+        lineSpacing: 7,
       }
     ).setOrigin(0.5)
 
+    this.add.text(742, 104, 'Charlie Smith', {
+      fontFamily: 'Georgia',
+      fontSize: '22px',
+      color: '#f5c978',
+    }).setOrigin(0.5)
+
+    this.add.text(742, 138, 'Hunter of the Prince of Shadows', {
+      fontFamily: 'Georgia',
+      fontSize: '15px',
+      color: '#d8e8e2',
+    }).setOrigin(0.5)
+
+    this.add.text(742, 470, 'Break Lake Pixor. Force Breach Road open.\nSurvive the Cinder Causeway.', {
+      fontFamily: 'Georgia',
+      fontSize: '17px',
+      color: '#edf4ef',
+      align: 'center',
+      wordWrap: { width: 240 },
+      lineSpacing: 8,
+    }).setOrigin(0.5)
+
     menuOptions.forEach((label, index) => {
-      const text = this.add.text(480, 408 + index * 34, label, {
+      const text = this.add.text(258, 328 + index * 44, label, {
         fontFamily: 'Georgia',
-        fontSize: '24px',
+        fontSize: '25px',
         color: '#d8e8e2',
       }).setOrigin(0.5)
       text.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -138,6 +172,9 @@ export class MenuScene extends Phaser.Scene {
     const selected = menuOptions[this.cursor]
     if (selected === 'Start Run') {
       this.scene.start('briefing')
+    } else if (selected === 'Controls Layout') {
+      this.scene.pause()
+      this.scene.launch('controls', { returnMode: 'menu' })
     } else if (selected === 'How to Play') {
       this.scene.start('instructions')
     } else {

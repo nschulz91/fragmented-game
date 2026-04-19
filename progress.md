@@ -30,3 +30,47 @@ Original prompt: Implement the Fragmented V2 expansion plan with combat polish, 
 - Latest verification:
   - `npm run build` passes after the chapter expansion.
   - `npm run smoke` passes against the new menu -> briefing -> Pixor -> reward -> route -> Causeway -> results flow.
+- 2026-04-19: Side-scrolling art integration pass:
+  - Replaced shell and chapter visuals with generated painted key art, chapter backdrops, and dialogue portrait crops under `public/assets/generated/`.
+  - Generated a first-pass Charlie sprite strip and extracted transparent runtime frames into `charlie_sheet_clean.png`.
+  - Replaced placeholder enemy runtime textures with generated transparent sprite cutouts for shade, cultist, brute, embermage, ashhound, and Warden.
+  - Wired Charlie into Phaser animations (`charlie-idle`, `charlie-run`, `charlie-dash`, `charlie-slash`, `charlie-charge`) and tuned sprite scales for gameplay readability.
+  - Verified:
+    - `npm run build` passes.
+    - `npm run smoke` passes after the sprite/scale swap.
+    - Browser proof confirms generated character/background art is visible in menu, dialogue, and Lake Pixor gameplay.
+- Remaining art debt / next suggestions:
+  - Charlie animation frames are usable but still a rough first-pass strip, not a final production sheet.
+  - Enemy runtime art is now authored/generated, but each enemy still needs a dedicated multi-frame animation sheet.
+  - The Playwright web-game client captures the main canvas only; because the app also uses a DOM shell, its screenshots can look black/incomplete even when the browser page renders correctly.
+  - Best next milestone: per-enemy animation sheets + cleaner shell layout hierarchy so the art has more room on screen.
+- 2026-04-19: Fragmented Art Pass 1:
+  - Added a repeatable art build step in `scripts/generate_runtime_art.py` to curate/generated final runtime sheets for Charlie, enemies, Warden, and combat FX under `public/assets/generated/`.
+  - Promoted stable runtime asset keys (`charlie-sheet`, per-enemy sheets, `warden-sheet`, and FX sheets) and moved animation ownership into `Player`, `Enemy`, and `Boss`.
+  - Expanded Charlie states to cover idle, run, jump/fall, slash, pulse, dash, parry, charge, hit, and death.
+  - Added enemy/boss animation coverage for neutral, telegraph, attack/cast, hit, and death states.
+  - Replaced more code-drawn combat feedback with asset-backed slash, parry, hit, and charged-strike effects.
+  - Slimmed the shell layout, reduced HUD footprint, widened the viewport, and added more authored-looking platform/hazard dressing for Lake Pixor, Breach Road, and Cinder Causeway.
+  - Verified:
+    - `npm run build` passes.
+    - `npm run smoke` passes across the full chapter flow.
+    - Browser proof screenshots captured clean menu and Lake Pixor gameplay frames with the animated art pass active.
+- 2026-04-19: Production cleanup pass after Art Pass 1:
+  - Expanded runtime sheets for Charlie, enemies, and the Warden to include more multi-frame locomotion/combat/death coverage instead of mostly single-pose attack states.
+  - Added asset-backed pulse and dash FX sheets, plus better charge-hold/release handling for Charlie.
+  - Added repeatable chapter tile/prop asset generation and integrated those textures into the side-scrolling stage helper for Lake Pixor, Breach Road, and Cinder Causeway.
+  - Moved deterministic browser hooks to `src/main.ts` so smoke coverage no longer depends on scene timing, and hardened the smoke test to wait for the menu state before asserting the run flow.
+  - Verified:
+    - `npm run build` passes.
+    - `npm run smoke` passes after the runtime art expansion.
+    - Browser proof confirms menu and Lake Pixor gameplay still render correctly with the upgraded sheets and environment dressing.
+- 2026-04-19: Interface and encounter bugfix pass:
+  - Reworked `Mission Briefing` into a cleaner two-column layout and shortened the row copy so the run-setup options no longer stack on top of each other.
+  - Reduced the viewport shell height mismatch by bringing `#game-container` back to the canvas height instead of leaving a large blank gutter below the game.
+  - Hardened enemy cleanup in Lake Pixor, Breach Road, and Cinder Causeway so dead enemies stop blocking encounter progression even before their final destroy callback completes.
+  - Updated `Enemy.receiveDamage()` to mark killed enemies inactive immediately, which fixes the “nothing after Wave 2” stall caused by zero-health enemies lingering in the active encounter array.
+  - Verified:
+    - `npm run build` passes.
+    - `npm run smoke` passes.
+    - Browser proof confirms the briefing screen no longer overlaps itself.
+    - Deterministic browser proof confirms Wave 1 -> Wave 2 -> Wave 3 -> checkpoint progression now advances correctly.

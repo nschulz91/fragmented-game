@@ -16,10 +16,20 @@ const game = new Phaser.Game({
 declare global {
   interface Window {
     __fragmentedGame?: Phaser.Game
+    render_game_to_text?: () => string
+    advanceTime?: (ms: number) => void
   }
 }
 
 window.__fragmentedGame = game
+window.render_game_to_text = () => JSON.stringify(game.registry.get('renderState') ?? {})
+window.advanceTime = (ms: number) => {
+  const scene =
+    (game.scene.getScene('game') as { manualAdvance?: (stepMs: number) => void } | undefined) ??
+    (game.scene.getScene('causeway') as { manualAdvance?: (stepMs: number) => void } | undefined) ??
+    (game.scene.getScene('route') as { manualAdvance?: (stepMs: number) => void } | undefined)
+  scene?.manualAdvance?.(ms)
+}
 
 window.addEventListener('keydown', (event) => {
   if (event.repeat || event.key.toLowerCase() !== 'm') return

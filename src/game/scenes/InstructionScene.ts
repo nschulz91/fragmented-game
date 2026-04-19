@@ -23,35 +23,38 @@ export class InstructionScene extends Phaser.Scene {
     setLoreText(
       `Allied traces remain from ${namedFactions.join(', ')}. Faction variants, relics, and challenge modifiers all feed into the same chapter run now.`
     )
-    setHeaderText('This screen is for controls only. Actual run setup happens in the mission briefing scene.')
+    setHeaderText('This screen explains the run. The new visual controls layout is also available from menu and pause.')
     setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South button opens briefing' : 'Enter opens briefing')
     audioDirector.playTrack('menu')
 
+    this.add.image(480, 270, 'fragmented-key-art').setDisplaySize(960, 540).setAlpha(0.16)
     this.add.rectangle(480, 270, 960, 540, 0x09141a, 0.86)
-    this.add.text(480, 84, 'Mission Brief', {
+    this.add.text(310, 84, 'Mission Brief', {
       fontFamily: 'Georgia',
       fontSize: '42px',
       color: '#fff4d3',
     }).setOrigin(0.5)
 
-    this.add.text(480, 212, instructionLines.join('\n\n'), {
+    this.add.text(310, 212, instructionLines.join('\n\n'), {
       fontFamily: 'Georgia',
       fontSize: '22px',
       color: '#e1ece8',
       align: 'center',
-      wordWrap: { width: 740 },
+      wordWrap: { width: 480 },
       lineSpacing: 12,
     }).setOrigin(0.5)
 
-    this.add.text(480, 374, `Faction support available: ${namedFactions.join(' · ')}`, {
+    this.add.image(760, 282, 'charlie-turnaround').setDisplaySize(320, 214)
+
+    this.add.text(310, 390, `Faction support available: ${namedFactions.join(' · ')}`, {
       fontFamily: 'Georgia',
       fontSize: '18px',
       color: '#d2ddd5',
       align: 'center',
-      wordWrap: { width: 760 },
+      wordWrap: { width: 470 },
     }).setOrigin(0.5)
 
-    this.add.text(480, 448, 'Press Enter or the south button to open the mission briefing.', {
+    this.add.text(480, 472, 'Press Enter or the south button to open the mission briefing.', {
       fontFamily: 'Georgia',
       fontSize: '22px',
       color: '#f5c978',

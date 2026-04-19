@@ -2,19 +2,24 @@ import Phaser from 'phaser'
 import { Boss } from '../entities/Boss'
 import { Enemy, type MinionKind } from '../entities/Enemy'
 import { Player } from '../entities/Player'
-import { arena, arenaLandmarks, bossStats, playerStats, spawnPoints, waterPools, wavePlan } from '../content/tuning'
-import { buffLabels, perkLabels } from '../content/gameText'
 import {
-  grantScore,
-  saveSettings,
-  type MetaProgress,
-  type RenderState,
-  type RunState,
-} from '../state'
+  arena,
+  bossStats,
+  pixorHazards,
+  pixorPlatforms,
+  playerStats,
+  spawnPoints,
+  wavePlan,
+} from '../content/tuning'
+import { buffLabels, perkLabels } from '../content/gameText'
+import { grantScore, saveSettings, type MetaProgress, type RenderState, type RunState } from '../state'
 import { audioDirector } from '../systems/AudioDirector'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { Hud } from '../systems/Hud'
+import { showLevelBanner } from '../systems/LevelBanner'
+import { showNarrativeBeat } from '../systems/NarrativeBeat'
 import { SeededRng } from '../systems/SeededRng'
+import { addParallaxBackdrop, buildPlatforms, drawBranchSigns, drawHazards } from '../systems/SideScrollStage'
 import { setHeaderText, setLoreText, setObjectiveText, setProgressText, setPromptText, setRegionText, setStatusText } from '../../ui/shell'
 
 type ActionState = {
@@ -24,6 +29,7 @@ type ActionState = {
   parry: boolean
   chargePressed: boolean
   chargeHeld: boolean
+  jump: boolean
   pause: boolean
   fullscreen: boolean
 }
@@ -32,11 +38,12 @@ export class GameScene extends Phaser.Scene {
   private player!: Player
   private hud!: Hud
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private keys!: Record<'W' | 'A' | 'S' | 'D' | 'SPACE' | 'Q' | 'SHIFT' | 'E' | 'C' | 'ESC' | 'F', Phaser.Input.Keyboard.Key>
+  private keys!: Record<'A' | 'D' | 'LEFT' | 'RIGHT' | 'UP' | 'W' | 'SPACE' | 'Q' | 'SHIFT' | 'E' | 'C' | 'ESC' | 'F', Phaser.Input.Keyboard.Key>
   private readonly pad = new GamepadState()
   private enemies: Enemy[] = []
   private boss?: Boss
   private enemyProjectiles!: Phaser.Physics.Arcade.Group
+  private platforms!: Phaser.Physics.Arcade.StaticGroup
   private currentWaveIndex = 0
   private phaseLabel = 'Wave 1'
   private currentObjective = wavePlan[0].objective
@@ -46,6 +53,8 @@ export class GameScene extends Phaser.Scene {
   private checkpointHandled = false
   private bossPhaseTriggered = new Set<number>()
   private shieldTimer = 0
+  private beatOneShown = false
+  private beatTwoShown = false
 
   constructor() {
     super('game')
@@ -72,36 +81,31 @@ export class GameScene extends Phaser.Scene {
     this.bossActive = false
     this.bossPhaseTriggered.clear()
     this.shieldTimer = 0
+    this.beatOneShown = false
+    this.beatTwoShown = false
 
-    setStatusText('Lake Pixor loaded. Hold the breach.')
+    setStatusText('Lake Pixor loaded. Side path breach active.')
     setObjectiveText(runState.resumedFromCheckpoint ? 'Resume from the checkpoint and break the Warden.' : wavePlan[0].objective)
     setLoreText(
       runState.resumedFromCheckpoint
-        ? 'The checkpoint still holds. Charlie returns to the boss breach with the same run state.'
-        : 'Lake Pixor is the first chapter: toxic ground, broken landmarks, and the first proof that the route east can hold.'
+        ? 'Charlie returns to the breach shelf with the checkpoint state intact.'
+        : 'Lake Pixor is now a side-scrolling chapter with elevated ruins, toxic channels, and a boss gate at the far east.'
     )
-    setHeaderText('Chapter 1 remains the structured combat tutorial, but now it feeds chapter score, relic progression, and the reward room.')
+    setHeaderText('Charlie now fights through a side-scrolling breach with upper/lower approach options instead of a flat arena.')
     setProgressText(`Relics ${meta.unlockedRelics.length} | Score ${runState.score} | Modifier x${runState.scoreMultiplier}`)
-    setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South slash, West pulse, R1 charge' : 'Space slash, Q pulse, C charge')
+    setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South slash, West pulse, South jump' : 'Space jump/slash, Q pulse, C charge')
     setRegionText('Chapter 1: Lake Pixor')
 
     audioDirector.playTrack('ambient')
-
     this.physics.world.setBounds(0, 0, arena.width, arena.height)
     this.cameras.main.setBounds(0, 0, arena.width, arena.height)
     this.cameras.main.flash(260, 30, 40, 48)
 
     this.drawArena()
     this.enemyProjectiles = this.physics.add.group()
-    this.player = new Player(
-      this,
-      480,
-      420,
-      runState.selectedBuff,
-      runState.selectedPerk,
-      runState.activeRelics,
-      runState.factionVariant
-    )
+    this.player = new Player(this, 168, 380, runState.selectedBuff, runState.selectedPerk, runState.activeRelics, runState.factionVariant)
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08)
+    this.physics.add.collider(this.player, this.platforms)
 
     if (runState.activeChallengeModifiers.includes('glass-fragility')) {
       this.player.health = Math.min(this.player.health, this.player.maxHealth - 24)
@@ -109,10 +113,16 @@ export class GameScene extends Phaser.Scene {
 
     this.hud = new Hud(this)
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE,Q,SHIFT,E,C,ESC,F') as GameScene['keys']
+    this.keys = this.input.keyboard!.addKeys('A,D,LEFT,RIGHT,UP,W,SPACE,Q,SHIFT,E,C,ESC,F') as GameScene['keys']
 
     this.physics.add.overlap(this.player, this.enemyProjectiles, (_player, projectile) => {
       this.handleProjectileCollision(projectile as Phaser.Physics.Arcade.Image)
+    })
+
+    showLevelBanner(this, {
+      title: 'Lake Pixor',
+      subtitle: 'Chapter 1 · Breach of the Poisoned Shore',
+      accent: '#78d5c5',
     })
 
     if (runState.resumedFromCheckpoint && runState.checkpoint.unlocked) {
@@ -132,7 +142,7 @@ export class GameScene extends Phaser.Scene {
   manualAdvance(ms: number) {
     if (!this.scene.isActive()) return
     const steps = Math.max(1, Math.round(ms / (1000 / 60)))
-    for (let i = 0; i < steps; i += 1) {
+    for (let index = 0; index < steps; index += 1) {
       this.simulationNow += 1000 / 60
       this.runFrame(1000 / 60, this.simulationNow, true)
       this.physics.world.singleStep()
@@ -147,11 +157,18 @@ export class GameScene extends Phaser.Scene {
     runState.bossPhase = 1
     this.registry.set('runState', runState)
     this.phaseLabel = 'Warden'
-    this.currentObjective = 'Break the Warden of Pixor before the Prince locks the breach.'
+    this.currentObjective = 'Break the Warden of Pixor at the eastern gate.'
     setObjectiveText(this.currentObjective)
-    setLoreText('The final lock moves. The Warden is now the bridge between the lake and the reward room.')
-    this.boss = new Boss(this, 480, 112, this.enemyProjectiles)
+    setLoreText('The Warden is holding the upper gate. Use the ledges and punish the casting windows.')
+    this.boss = new Boss(this, 1704, 180, this.enemyProjectiles)
+    this.physics.add.collider(this.boss, this.platforms)
     audioDirector.playSfx('warning')
+    showLevelBanner(this, {
+      title: 'Warden Gate',
+      subtitle: 'Final Shelf · Hold the line and break the guardian',
+      accent: '#ffbe7b',
+      duration: 1900,
+    })
     this.scene.resume()
   }
 
@@ -176,16 +193,18 @@ export class GameScene extends Phaser.Scene {
       saveSettings(this.registry.get('settings'))
     }
 
-    const moveVector = new Phaser.Math.Vector2(
-      (this.cursors.left?.isDown || this.keys.A.isDown ? -1 : 0) + (this.cursors.right?.isDown || this.keys.D.isDown ? 1 : 0) + this.pad.axisX(),
-      (this.cursors.up?.isDown || this.keys.W.isDown ? -1 : 0) + (this.cursors.down?.isDown || this.keys.S.isDown ? 1 : 0) + this.pad.axisY()
-    )
+    const horizontal =
+      (this.cursors.left?.isDown || this.keys.A.isDown || this.keys.LEFT.isDown ? -1 : 0) +
+      (this.cursors.right?.isDown || this.keys.D.isDown || this.keys.RIGHT.isDown ? 1 : 0) +
+      this.pad.axisX()
 
-    this.player.move(moveVector)
+    this.player.move(horizontal)
+    if (actions.jump && this.player.jump()) audioDirector.playSfx('dash', 0.45)
     if (actions.dash) {
-      const used = this.player.dash(now, moveVector)
+      const used = this.player.dash(now, horizontal)
       if (used) {
         audioDirector.playSfx('dash')
+        this.flashDashFx()
         if ((this.registry.get('runState') as RunState).selectedPerk === 'pixor-scouts') {
           this.player.activateDamageBoost(now, 1800)
         }
@@ -214,7 +233,7 @@ export class GameScene extends Phaser.Scene {
     this.updateHazards(deltaMs, now)
     this.cleanupProjectiles(now)
 
-    this.enemies = this.enemies.filter((enemy) => enemy.active)
+    this.enemies = this.enemies.filter((enemy) => enemy.active && enemy.health > 0)
     this.enemies.forEach((enemy) => enemy.update(now, this.player))
     this.boss?.update(now, this.player)
 
@@ -231,13 +250,16 @@ export class GameScene extends Phaser.Scene {
 
   private collectActions(): ActionState {
     const chargeHeld = this.keys.C.isDown || this.pad.isDown(GamepadButtons.R1)
+    const jumpKey = Phaser.Input.Keyboard.JustDown(this.cursors.up!) || Phaser.Input.Keyboard.JustDown(this.keys.W) || this.pad.justPressed(GamepadButtons.South)
+    const slashKey = Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || this.pad.justPressed(GamepadButtons.South)
     return {
-      slash: Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || this.pad.justPressed(GamepadButtons.South),
+      slash: slashKey && !jumpKey,
       pulse: Phaser.Input.Keyboard.JustDown(this.keys.Q) || this.pad.justPressed(GamepadButtons.West),
       dash: Phaser.Input.Keyboard.JustDown(this.keys.SHIFT) || this.pad.justPressed(GamepadButtons.East),
       parry: Phaser.Input.Keyboard.JustDown(this.keys.E) || this.pad.justPressed(GamepadButtons.North),
       chargePressed: Phaser.Input.Keyboard.JustDown(this.keys.C) || this.pad.justPressed(GamepadButtons.R1),
       chargeHeld,
+      jump: jumpKey,
       pause: Phaser.Input.Keyboard.JustDown(this.keys.ESC) || this.pad.justPressed(GamepadButtons.Start),
       fullscreen: Phaser.Input.Keyboard.JustDown(this.keys.F),
     }
@@ -253,50 +275,32 @@ export class GameScene extends Phaser.Scene {
   }
 
   private flashSlashFx() {
-    const slashFx = this.add.arc(this.player.x + this.player.facing.x * 32, this.player.y + this.player.facing.y * 32, 40, 0, 180, false, 0xfbe6aa, 0.36)
-    slashFx.setRotation(this.player.facing.angle())
-    slashFx.setDepth(30)
-    this.tweens.add({
-      targets: slashFx,
-      alpha: 0,
-      scale: 1.34,
-      duration: 120,
-      onComplete: () => slashFx.destroy(),
-    })
+    this.playFx('fx-slash-sheet', 'fx-slash', this.player.x + this.player.facing.x * 56, this.player.y - 26, this.player.facing.x < 0 ? -0.9 : 0.9, 34)
   }
 
   private flashPulseFx() {
-    const ring = this.add.image(this.player.x, this.player.y, 'pulse-ring').setDepth(10).setAlpha(0.7)
-    this.tweens.add({
-      targets: ring,
-      alpha: 0,
-      scale: 1.5,
-      duration: 260,
-      onComplete: () => ring.destroy(),
-    })
+    this.playFx('fx-pulse-sheet', 'fx-pulse', this.player.x, this.player.y - 24, 0.72, 14)
+  }
+
+  private flashDashFx() {
+    this.playFx('fx-dash-sheet', 'fx-dash', this.player.x - this.player.facing.x * 18, this.player.y - 18, this.player.facing.x < 0 ? -0.82 : 0.82, 29)
   }
 
   private flashChargeFx() {
-    const ring = this.add.circle(this.player.x, this.player.y, this.player.chargeRadius, 0xffba7b, 0.28).setDepth(14)
-    this.tweens.add({
-      targets: ring,
-      alpha: 0,
-      scale: 1.4,
-      duration: 180,
-      onComplete: () => ring.destroy(),
-    })
+    this.playFx('fx-charge-sheet', 'fx-charge', this.player.x, this.player.y - 18, 0.8, 14)
   }
 
   private updateHazards(deltaMs: number, time: number) {
     const runState = this.registry.get('runState') as RunState
     const hazardMultiplier = runState.activeChallengeModifiers.includes('ember-tax') ? 1.3 : 1
-    for (const pool of waterPools) {
-      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, pool.x, pool.y)
-      if (distance <= pool.radius) {
+    for (const pool of pixorHazards) {
+      const insideX = this.player.x > pool.x && this.player.x < pool.x + pool.width
+      const insideY = this.player.y + 24 > pool.y
+      if (insideX && insideY) {
         const damage = ((playerStats.waterDamagePerSecond * hazardMultiplier) * deltaMs) / 1000
         const tookDamage = this.player.receiveDamage(damage, time)
         if (tookDamage) audioDirector.playSfx('hit', 0.5)
-        setStatusText('Toxic water is burning Charlie.')
+        setStatusText('Toxic runoff is burning Charlie.')
         return
       }
     }
@@ -321,34 +325,44 @@ export class GameScene extends Phaser.Scene {
       projectile.destroy()
       this.player.handleParrySuccess()
       audioDirector.playSfx('parry')
+      this.playFx('fx-parry-sheet', 'fx-parry', this.player.x, this.player.y - 26, 0.7, 38)
       return
     }
     const damage = Number(projectile.getData('damage') ?? 8)
-    if (this.player.receiveDamage(damage, now)) audioDirector.playSfx('hit')
+    if (this.player.receiveDamage(damage, now)) {
+      audioDirector.playSfx('hit')
+      this.playFx('fx-hit-sheet', 'fx-hit', this.player.x, this.player.y - 24, 0.7, 38)
+    }
     projectile.destroy()
   }
 
   private handleEnemyContact(time: number) {
     this.enemies.forEach((enemy) => {
       if (!enemy.active) return
-      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y) < 34) {
+      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y) < 58) {
         if (this.player.isParrying()) {
           enemy.stun?.((this.registry.get('runState') as RunState).selectedPerk === 'order-of-glass' ? 850 : 600)
           this.player.handleParrySuccess(enemy)
           audioDirector.playSfx('parry')
+          this.playFx('fx-parry-sheet', 'fx-parry', enemy.x, enemy.y - 22, 0.6, 38)
           return
         }
-        if (this.player.receiveDamage(enemy.touchDamage * 0.18, time)) audioDirector.playSfx('hit', 0.8)
+        if (this.player.receiveDamage(enemy.touchDamage * 0.18, time)) {
+          audioDirector.playSfx('hit', 0.8)
+          this.playFx('fx-hit-sheet', 'fx-hit', this.player.x, this.player.y - 24, 0.7, 38)
+        }
       }
     })
 
-    if (this.boss && this.boss.active && Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.player.x, this.player.y) < 52) {
+    if (this.boss && this.boss.active && Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.player.x, this.player.y) < 86) {
       if (this.player.isParrying()) {
         this.boss.stun((this.registry.get('runState') as RunState).selectedPerk === 'order-of-glass' ? 700 : 450)
         this.player.handleParrySuccess(this.boss)
         audioDirector.playSfx('parry')
+        this.playFx('fx-parry-sheet', 'fx-parry', this.boss.x, this.boss.y - 36, 0.9, 38)
       } else if (this.player.receiveDamage(this.boss.touchDamage * 0.2, time)) {
         audioDirector.playSfx('hit', 1.1)
+        this.playFx('fx-hit-sheet', 'fx-hit', this.player.x, this.player.y - 24, 0.8, 38)
       }
     }
   }
@@ -378,7 +392,7 @@ export class GameScene extends Phaser.Scene {
         this.spawnMinion('shade')
         this.spawnMinion('shade')
         audioDirector.playSfx('warning')
-        setLoreText('The Warden fractures the air and calls shades into the breach.')
+        setLoreText('The Warden tears open the upper ramp and calls shades down from the breach.')
       }
       if (ratio <= bossStats.phaseThresholds[1] && !this.bossPhaseTriggered.has(3)) {
         this.bossPhaseTriggered.add(3)
@@ -389,7 +403,7 @@ export class GameScene extends Phaser.Scene {
         this.spawnMinion('cultist')
         this.spawnMinion('brute')
         audioDirector.playSfx('boss')
-        setLoreText('The last phase is heavier, faster, and much less patient.')
+        setLoreText('The last phase turns the breach into a layered crossfire.')
       }
       return
     }
@@ -403,6 +417,24 @@ export class GameScene extends Phaser.Scene {
 
     this.currentWaveIndex += 1
     if (this.currentWaveIndex < wavePlan.length) {
+      if (this.currentWaveIndex === 1 && !this.beatOneShown) {
+        this.beatOneShown = true
+        showNarrativeBeat(this, {
+          speaker: 'Marshal Veyra',
+          portrait: 'portrait-veyra',
+          line: 'The first shelf is clear. Do not let the Warden set the pace.',
+          accent: '#78d5c5',
+        })
+      }
+      if (this.currentWaveIndex === 2 && !this.beatTwoShown) {
+        this.beatTwoShown = true
+        showNarrativeBeat(this, {
+          speaker: 'Scout Runner',
+          portrait: 'portrait-scout',
+          line: 'Checkpoint shelf ahead. One more hard push and the gate is yours.',
+          accent: '#f2dd99',
+        })
+      }
       this.spawnWave(this.currentWaveIndex)
       const nextWave = wavePlan[this.currentWaveIndex]
       runState.currentWave = this.currentWaveIndex + 1
@@ -410,7 +442,7 @@ export class GameScene extends Phaser.Scene {
       this.phaseLabel = nextWave.label
       this.currentObjective = nextWave.objective
       setObjectiveText(nextWave.objective)
-      setLoreText(`Wave ${this.currentWaveIndex + 1} breaches with a different rhythm. Read the telegraphs before they close.`)
+      setLoreText(`Wave ${this.currentWaveIndex + 1} changes elevation and pressure. Read the telegraphs before they trap the lane.`)
       return
     }
 
@@ -429,7 +461,7 @@ export class GameScene extends Phaser.Scene {
     this.phaseLabel = 'Checkpoint'
     this.currentObjective = 'Select one buff and one faction support perk.'
     setObjectiveText(this.currentObjective)
-    setLoreText('The checkpoint is stable. Choose one upgrade and one faction line before the boss intercept.')
+    setLoreText('The checkpoint is stable. Choose your breach loadout before climbing into the Warden gate.')
     this.scene.launch('checkpoint')
     this.scene.pause()
   }
@@ -451,7 +483,8 @@ export class GameScene extends Phaser.Scene {
 
   private spawnMinion(kind: MinionKind) {
     const spawn = this.rng.pick(spawnPoints)
-    const enemy = new Enemy(this, spawn.x + Phaser.Math.Between(-18, 18), spawn.y + Phaser.Math.Between(-18, 18), kind, this.enemyProjectiles)
+    const enemy = new Enemy(this, spawn.x + Phaser.Math.Between(-18, 18), spawn.y + Phaser.Math.Between(-12, 12), kind, this.enemyProjectiles)
+    this.physics.add.collider(enemy, this.platforms)
     this.enemies.push(enemy)
   }
 
@@ -528,44 +561,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawArena() {
-    const backdrop = this.add.graphics()
-    backdrop.fillGradientStyle(0x1d3a42, 0x17363e, 0x0e171c, 0x0a1014, 1)
-    backdrop.fillRect(0, 0, arena.width, arena.height)
+    addParallaxBackdrop(this, 'bg-pixor', arena.width, arena.height)
+    this.platforms = buildPlatforms(this, pixorPlatforms, 'pixor', arena.height)
+    drawHazards(this, pixorHazards, 'pixor')
+    drawBranchSigns(this, [
+      { x: 432, y: 320, text: 'Upper Ruin Path', accent: 0x9ecae7 },
+      { x: 1036, y: 360, text: 'Low Spillway', accent: 0x8ce4d6 },
+      { x: 1326, y: 290, text: 'Checkpoint Shelf', accent: 0xf2dd99 },
+      { x: 1602, y: 248, text: 'Warden Gate', accent: 0xffc37b },
+    ])
+  }
 
-    const aura = this.add.graphics()
-    aura.fillStyle(0xa1dfe3, 0.06)
-    aura.fillCircle(170, 94, 156)
-    aura.fillCircle(806, 392, 194)
-
-    const ruins = this.add.graphics()
-    ruins.fillStyle(0x2d474d, 0.95)
-    arenaLandmarks.forEach((landmark, index) => {
-      ruins.fillRoundedRect(landmark.x - landmark.width / 2, landmark.y - landmark.height / 2, landmark.width, landmark.height, 12)
-      this.add.circle(landmark.x, landmark.y, 10 + index * 2, 0xcaa66b, 0.18).setDepth(4)
-    })
-
-    waterPools.forEach((pool, index) => {
-      const safeRing = this.add.circle(pool.x, pool.y, pool.radius + 16, 0x94e5b0, 0.08)
-      safeRing.setDepth(1)
-      const water = this.add.circle(pool.x, pool.y, pool.radius, 0x2f8fb5, 0.52)
-      water.setStrokeStyle(4, 0xd6fff9, 0.28)
-      water.setDepth(2)
-      this.add.text(pool.x, pool.y + pool.radius + 16, index === 0 ? 'Toxic water' : '', {
-        fontFamily: 'Georgia',
-        fontSize: '14px',
-        color: '#d7f3ff',
-      }).setOrigin(0.5).setDepth(2)
-    })
-
-    this.add.text(30, 496, 'Lake Pixor', {
-      fontFamily: 'Georgia',
-      fontSize: '30px',
-      color: '#e0eee6',
-    }).setAlpha(0.9)
-    this.add.text(824, 500, 'Breach Road', {
-      fontFamily: 'Georgia',
-      fontSize: '18px',
-      color: '#d9c492',
-    }).setOrigin(1, 0.5).setAlpha(0.75)
+  private playFx(sheetKey: string, animKey: string, x: number, y: number, scale: number, depth: number) {
+    const fx = this.add.sprite(x, y, sheetKey, 0).setScale(scale).setDepth(depth)
+    fx.play(animKey)
+    fx.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => fx.destroy())
+    return fx
   }
 }

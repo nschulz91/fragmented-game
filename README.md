@@ -2,6 +2,8 @@
 
 Fragmented is a standalone browser-based 2D action game built with Phaser and Vite.
 
+The current build is no longer the original top-down prototype. It now plays as a **side-scrolling action game** with generated-and-curated runtime sprite sheets, painted background layers, elevated routes, and branching traversal through each chapter.
+
 The current milestone, **Warden Aftermath**, turns the original Lake Pixor slice into a chapter-based run:
 
 - `Chapter 1`: Lake Pixor
@@ -16,6 +18,10 @@ It now includes:
 - faction variants, challenge modifiers, and run score multipliers
 - a post-Warden reward flow and a broader second playable region with two new enemy families
 - controller-aware prompts, fullscreen/settings persistence, and deterministic smoke coverage
+- animated runtime art for Charlie, the enemy roster, the Warden, and core combat FX
+- slimmer shell layout so the side-scrolling playfield and painterly backgrounds have more room during testing
+- expanded animation coverage with multi-frame slash, pulse, dash, parry, charge, telegraph, attack, and death states
+- chapter-specific stage tiles and prop art for Lake Pixor, Breach Road, and Cinder Causeway
 
 ## Local Play
 
@@ -35,7 +41,8 @@ npm run preview
 
 ## Controls
 
-- `WASD` or arrow keys: move
+- `A/D` or left/right arrows: move
+- `W`, `Up`, or gamepad south: jump
 - `Space`: slash
 - `Q`: time pulse
 - `Shift`: dash / evade
@@ -49,7 +56,7 @@ npm run preview
 ## Gamepad
 
 - left stick / d-pad: move
-- south button: slash / confirm
+- south button: jump / confirm
 - east button: dash
 - west button: pulse
 - north button: parry
@@ -93,7 +100,7 @@ This builds the project, serves the production bundle locally, and verifies the 
 - menu
 - mission briefing
 - chapter card / dialogue
-- Lake Pixor gameplay
+- side-scrolling Lake Pixor gameplay
 - checkpoint
 - boss intro
 - reward room
@@ -113,6 +120,8 @@ This builds the project, serves the production bundle locally, and verifies the 
 
 ## Notes
 
-- Art, portraits, relics, and audio loops are still procedural placeholders.
+- Character art, enemy sprites, boss sheets, portraits, shrine/relic icons, and chapter backdrops now come from curated runtime assets under `public/assets/generated/`.
+- Core combat effects now use asset-backed sprite sheets for slash, dash, parry, hit spark, and charged strike detonation, with procedural fallbacks only where timing/layering still benefits from code.
+- Runtime art generation is repeatable through `scripts/generate_runtime_art.py`, which also builds the current tile/prop textures used by the side-scrolling chapters.
 - The build is chapter-based and combat-first, not open world.
 - The public browser build is served from GitHub Pages via the repo workflow.

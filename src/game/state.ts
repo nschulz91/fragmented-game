@@ -3,6 +3,7 @@ export type SceneMode =
   | 'briefing'
   | 'chapter-card'
   | 'dialogue'
+  | 'controls'
   | 'instructions'
   | 'settings'
   | 'checkpoint'
@@ -86,6 +87,8 @@ export interface RenderState {
   mode: SceneMode
   flow: SceneMode
   coordinateSystem: string
+  overlay?: 'none' | 'pause' | 'controls' | 'dialogue' | 'banner'
+  section?: string
   region?: RegionId
   chapter?: number
   seed?: string

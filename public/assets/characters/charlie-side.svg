@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="128" viewBox="0 0 96 128">
+  <defs>
+    <linearGradient id="shirt" x1="0" x2="1">
+      <stop offset="0" stop-color="#f7f7fb"/>
+      <stop offset="1" stop-color="#bfc5d8"/>
+    </linearGradient>
+    <linearGradient id="pants" x1="0" x2="1">
+      <stop offset="0" stop-color="#1a1f2b"/>
+      <stop offset="1" stop-color="#394255"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="48" cy="120" rx="24" ry="6" fill="#000" opacity=".22"/>
+  <path d="M26 112h14l4 8H26zM52 112h14l4 8H52z" fill="#0f1117"/>
+  <path d="M31 68h14l-4 44H27zM51 68h15l5 44H55z" fill="url(#pants)"/>
+  <path d="M25 44c0-10 9-18 20-18h8c11 0 20 8 20 18v26H25z" fill="url(#shirt)"/>
+  <path d="M43 48h20l-2 12-10 6-11-4z" fill="#111319"/>
+  <path d="M22 49h10l2 28H24c-4 0-7-4-6-8zM64 49h9l4 20c1 5-3 8-7 8h-7z" fill="#f0f0f2"/>
+  <path d="M20 75h13v16H22c-4 0-7-3-7-7v-1c0-4 3-8 5-8zM64 75h14c3 0 5 4 5 8v1c0 4-3 7-7 7H64z" fill="#161920"/>
+  <path d="M39 16c5-5 15-8 24-4 9 4 13 15 10 25-2 8-7 13-13 15H39c-7-3-10-9-10-17 0-8 3-14 10-19z" fill="#efc18f"/>
+  <path d="M31 28c0-18 18-29 35-22 8 3 14 11 14 20-7-3-10-12-19-11-8 1-12 7-18 8-7 2-9 6-12 15z" fill="#171a22"/>
+  <path d="M31 28c4 2 10 1 16-3 4-2 8 4 15 4 7 0 10-5 14-4-2 12-11 22-24 22-12 0-21-8-21-19z" fill="#171a22"/>
+  <ellipse cx="50" cy="37" rx="3" ry="4" fill="#ff4d59"/>
+  <ellipse cx="61" cy="37" rx="3" ry="4" fill="#ff4d59"/>
+</svg>

@@ -3,15 +3,32 @@ import {
   bossIntroLines,
   bossOutroLines,
   causewayIntroDialogue,
+  causewayMidOneDialogue,
+  causewayMidTwoDialogue,
   causewayOutroDialogue,
   pixorDialogue,
+  pixorMidOneDialogue,
+  pixorMidTwoDialogue,
   rewardRoomLines,
   routeDialogue,
+  routeMidDialogue,
 } from '../content/gameText'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { setHeaderText, setLoreText, setObjectiveText, setPromptText, setStatusText } from '../../ui/shell'
 
-type DialogueId = 'pixor-intro' | 'boss-intro' | 'boss-outro' | 'reward-room' | 'route' | 'causeway-intro' | 'causeway-outro'
+type DialogueId =
+  | 'pixor-intro'
+  | 'pixor-mid-one'
+  | 'pixor-mid-two'
+  | 'boss-intro'
+  | 'boss-outro'
+  | 'reward-room'
+  | 'route'
+  | 'route-mid'
+  | 'causeway-intro'
+  | 'causeway-mid-one'
+  | 'causeway-mid-two'
+  | 'causeway-outro'
 
 type DialogueLine = {
   speaker: string
@@ -26,6 +43,7 @@ export class DialogueScene extends Phaser.Scene {
   private index = 0
   private nextScene = 'game'
   private nextData: unknown
+  private resumeScene?: string
   private portrait?: Phaser.GameObjects.Image
   private speakerText?: Phaser.GameObjects.Text
   private bodyText?: Phaser.GameObjects.Text
@@ -34,10 +52,11 @@ export class DialogueScene extends Phaser.Scene {
     super('dialogue')
   }
 
-  init(data?: { lines?: DialogueId; nextScene?: string; nextData?: unknown }) {
+  init(data?: { lines?: DialogueId; nextScene?: string; nextData?: unknown; resumeScene?: string }) {
     this.lines = resolveDialogue(data?.lines ?? 'pixor-intro')
     this.nextScene = data?.nextScene ?? 'game'
     this.nextData = data?.nextData
+    this.resumeScene = data?.resumeScene
     this.index = 0
   }
 
@@ -46,6 +65,7 @@ export class DialogueScene extends Phaser.Scene {
       ...(this.registry.get('renderState') ?? {}),
       mode: 'dialogue',
       flow: 'dialogue',
+      overlay: 'dialogue',
     })
     setStatusText('Dialogue card active.')
     setObjectiveText('Advance through the scene to continue the run.')
@@ -53,25 +73,27 @@ export class DialogueScene extends Phaser.Scene {
     setHeaderText('Portrait cards carry chapter framing, reward-room beats, and the route setup.')
     setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South button advances dialogue' : 'Enter advances dialogue')
 
-    this.add.rectangle(480, 270, 960, 540, 0x060d11, 0.96)
-    this.add.rectangle(168, 270, 180, 236, 0x111c22, 0.95).setStrokeStyle(2, 0xf5c978, 0.3)
-    this.add.rectangle(608, 270, 476, 236, 0x0f171d, 0.95).setStrokeStyle(2, 0xcfdcd6, 0.16)
+    this.add.image(480, 270, 'fragmented-key-art').setDisplaySize(960, 540).setAlpha(0.14)
+    this.add.rectangle(480, 270, 960, 540, 0x060d11, 0.92)
+    this.add.rectangle(176, 274, 196, 264, 0x111c22, 0.95).setStrokeStyle(2, 0xf5c978, 0.26)
+    this.add.rectangle(608, 274, 500, 264, 0x0f171d, 0.95).setStrokeStyle(2, 0xcfdcd6, 0.16)
+    this.add.rectangle(608, 150, 500, 36, 0xf5c978, 0.08)
 
-    this.portrait = this.add.image(168, 270, this.lines[0].portrait).setDisplaySize(128, 148)
-    this.speakerText = this.add.text(370, 188, '', {
+    this.portrait = this.add.image(176, 268, this.lines[0].portrait).setDisplaySize(136, 168)
+    this.speakerText = this.add.text(364, 178, '', {
       fontFamily: 'Georgia',
       fontSize: '24px',
       color: '#f5c978',
     })
-    this.bodyText = this.add.text(370, 232, '', {
+    this.bodyText = this.add.text(364, 222, '', {
       fontFamily: 'Georgia',
-      fontSize: '22px',
+      fontSize: '21px',
       color: '#e1ece8',
-      wordWrap: { width: 408 },
+      wordWrap: { width: 438 },
       lineSpacing: 12,
     })
 
-    this.add.text(480, 462, 'Press Enter or the south button to continue.', {
+    this.add.text(480, 470, 'Press Enter or the south button to continue.', {
       fontFamily: 'Georgia',
       fontSize: '18px',
       color: '#d5dfda',
@@ -93,6 +115,11 @@ export class DialogueScene extends Phaser.Scene {
       this.renderLine()
       return
     }
+    if (this.resumeScene) {
+      this.scene.resume(this.resumeScene)
+      this.scene.stop()
+      return
+    }
     this.scene.start(this.nextScene, this.nextData as Record<string, unknown> | undefined)
   }
 
@@ -105,11 +132,16 @@ export class DialogueScene extends Phaser.Scene {
 }
 
 function resolveDialogue(id: DialogueId): DialogueLine[] {
+  if (id === 'pixor-mid-one') return pixorMidOneDialogue
+  if (id === 'pixor-mid-two') return pixorMidTwoDialogue
   if (id === 'boss-intro') return bossIntroLines
   if (id === 'boss-outro') return bossOutroLines
   if (id === 'reward-room') return rewardRoomLines
   if (id === 'route') return routeDialogue
+  if (id === 'route-mid') return routeMidDialogue
   if (id === 'causeway-intro') return causewayIntroDialogue
+  if (id === 'causeway-mid-one') return causewayMidOneDialogue
+  if (id === 'causeway-mid-two') return causewayMidTwoDialogue
   if (id === 'causeway-outro') return causewayOutroDialogue
   return pixorDialogue
 }

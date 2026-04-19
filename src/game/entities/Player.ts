@@ -12,6 +12,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   health = playerStats.maxHealth
   maxHealth = playerStats.maxHealth
   moveSpeed = playerStats.moveSpeed
+  jumpVelocity = playerStats.jumpVelocity
   pulseCooldownMs = playerStats.pulseCooldownMs
   dashCooldownMs = playerStats.dashCooldownMs
   dashDistance = playerStats.dashDistance
@@ -33,6 +34,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   shieldCharges = 0
   damageBoostUntil = 0
   successfulParryAt = -9999
+  private actionLockUntil = 0
+  private deathHandled = false
+  private wasGrounded = true
   readonly shieldOrb: Phaser.GameObjects.Image
   readonly relicOrb: Phaser.GameObjects.Image
   readonly activeRelics: RelicId[]
@@ -46,17 +50,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     relics: RelicId[] = [],
     factionVariant: FactionVariantId = 'house-veyra'
   ) {
-    super(scene, x, y, 'charlie')
+    super(scene, x, y, 'charlie-sheet', 0)
     this.activeRelics = [...relics]
     scene.add.existing(this)
     scene.physics.add.existing(this)
-    this.setCircle(20)
+    this.setScale(0.4)
+    this.setSize(56, 108)
+    this.setOffset(82, 198)
     this.setCollideWorldBounds(true)
-    this.setDepth(20)
-    this.shieldOrb = scene.add.image(x, y - 30, 'shield').setAlpha(0).setDepth(26)
-    this.relicOrb = scene.add.image(x, y + 28, 'relic-core').setAlpha(relics.length > 0 ? 0.46 : 0).setDepth(26)
+    this.setDepth(30)
+    this.shieldOrb = scene.add.image(x, y - 54, 'shield').setAlpha(0).setDepth(36).setScale(0.55)
+    this.relicOrb = scene.add.image(x, y - 2, 'relic-core').setAlpha(relics.length > 0 ? 0.46 : 0).setDepth(36).setScale(0.42)
     this.applyLoadout(buff, perk, factionVariant)
     this.applyRelics(relics)
+    this.play('charlie-idle')
   }
 
   private applyLoadout(buff: BuffId | null, perk: PerkId | null, factionVariant: FactionVariantId) {
@@ -105,15 +112,35 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  move(vector: Phaser.Math.Vector2) {
+  move(horizontal: number) {
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (!body) return
     if (this.isDashing()) return
-    if (vector.lengthSq() > 0.01) {
-      vector.normalize()
-      this.facing.copy(vector)
-      this.setVelocity(vector.x * this.moveSpeed, vector.y * this.moveSpeed)
+    if (Math.abs(horizontal) > 0.08) {
+      const direction = Math.sign(horizontal)
+      this.facing.set(direction, 0)
+      this.setFlipX(direction < 0)
+      body.setVelocityX(direction * this.moveSpeed)
+      if (this.isGrounded() && !this.isCharging()) this.playLoop('charlie-run')
     } else {
-      this.setVelocity(0, 0)
+      body.setVelocityX(Phaser.Math.Linear(body.velocity.x, 0, 0.2))
+      if (this.isGrounded() && !this.isCharging()) this.playLoop('charlie-idle')
     }
+  }
+
+  jump() {
+    const body = this.body as Phaser.Physics.Arcade.Body
+    if (!body) return false
+    if (!body.blocked.down && !body.touching.down) return false
+    body.setVelocityY(-this.jumpVelocity)
+    this.wasGrounded = false
+    this.playLoop('charlie-jump')
+    return true
+  }
+
+  isGrounded() {
+    const body = this.body as Phaser.Physics.Arcade.Body
+    return Boolean(body?.blocked.down || body?.touching.down)
   }
 
   isDashing() {
@@ -135,16 +162,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   slash(now: number, enemies: EnemyLike[], onHit?: () => void) {
     if (!this.canSlash(now)) return false
     this.lastSlashAt = now
+    this.playAction('charlie-slash', 180)
 
     let hit = false
     const damage = this.getAttackDamage(playerStats.slashDamage)
     for (const enemy of enemies) {
       if (!enemy.active) continue
-      const direction = new Phaser.Math.Vector2(enemy.x - this.x, enemy.y - this.y)
-      const distance = direction.length()
-      if (distance > playerStats.slashRange) continue
-      direction.normalize()
-      if (this.facing.dot(direction) < 0.08) continue
+      const dx = enemy.x - this.x
+      const dy = Math.abs(enemy.y - this.y)
+      if (Math.abs(dx) > playerStats.slashRange || dy > 70) continue
+      if (Math.sign(dx || 1) !== Math.sign(this.facing.x || 1)) continue
       enemy.receiveDamage(damage)
       hit = true
     }
@@ -160,6 +187,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   pulse(now: number, enemies: EnemyLike[], onHit?: () => void) {
     if (!this.canPulse(now)) return false
     this.lastPulseAt = now
+    this.playAction('charlie-pulse', 220)
 
     const damage = this.getAttackDamage(playerStats.pulseDamage)
     for (const enemy of enemies) {
@@ -178,16 +206,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return now - this.lastDashAt >= this.dashCooldownMs
   }
 
-  dash(now: number, direction: Phaser.Math.Vector2) {
+  dash(now: number, direction: number) {
     if (!this.canDash(now)) return false
     this.lastDashAt = now
     this.dashUntil = now + playerStats.dashDurationMs
-    const vector = direction.lengthSq() > 0.01 ? direction.clone().normalize() : this.facing.clone().normalize()
-    this.facing.copy(vector)
-    this.setVelocity(
-      vector.x * (this.dashDistance / (playerStats.dashDurationMs / 1000)),
-      vector.y * (this.dashDistance / (playerStats.dashDurationMs / 1000))
-    )
+    const body = this.body as Phaser.Physics.Arcade.Body
+    const horizontal = Math.abs(direction) > 0.08 ? Math.sign(direction) : Math.sign(this.facing.x || 1)
+    this.facing.set(horizontal, 0)
+    this.setFlipX(horizontal < 0)
+    body.setVelocityX(horizontal * (this.dashDistance / (playerStats.dashDurationMs / 1000)))
+    if (!this.isGrounded()) body.setVelocityY(Math.min(body.velocity.y, -80))
+    this.playAction('charlie-dash', 180)
     return true
   }
 
@@ -199,6 +228,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (!this.canParry(now)) return false
     this.lastParryAt = now
     this.parryUntil = now + this.parryWindowMs
+    this.playAction('charlie-parry', 180)
     return true
   }
 
@@ -209,6 +239,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   startCharge(now: number) {
     if (!this.canCharge(now) || this.isCharging(now)) return false
     this.chargeStartedAt = now
+    this.playAction('charlie-charge-start', 140)
     return true
   }
 
@@ -221,6 +252,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.lastChargeAt = now
+    this.playAction('charlie-charge-release', 220)
     const damage = this.getAttackDamage(this.chargeDamage)
     let hit = false
     for (const enemy of enemies) {
@@ -231,7 +263,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       enemy.stun?.(420)
       hit = true
     }
-    return { triggered: true, detonated: hit || true }
+    return { triggered: true, detonated: true || hit }
   }
 
   handleParrySuccess(target?: EnemyLike) {
@@ -263,34 +295,68 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
     this.lastDamageAt = now
     this.health = Math.max(0, this.health - amount)
+    if (this.health <= 0) {
+      this.deathHandled = true
+      this.playAction('charlie-death', 1200)
+    } else {
+      this.playAction('charlie-hit', 260)
+    }
     return true
   }
 
   updateState(now: number) {
+    const body = this.body as Phaser.Physics.Arcade.Body
+    const grounded = this.isGrounded()
     if (this.shieldCharges > 0) {
-      this.shieldOrb.setPosition(this.x, this.y - 30).setAlpha(0.7)
+      this.shieldOrb.setPosition(this.x, this.y - 54).setAlpha(0.72)
       this.shieldOrb.rotation += 0.05
     } else {
       this.shieldOrb.setAlpha(0)
     }
     if (this.activeRelics.length > 0) {
-      this.relicOrb.setPosition(this.x, this.y + 28).setAlpha(0.44)
+      this.relicOrb.setPosition(this.x, this.y - 4).setAlpha(0.46)
       this.relicOrb.rotation -= 0.04
     } else {
       this.relicOrb.setAlpha(0)
     }
-    if (!this.isDashing() && !this.body?.blocked.none) {
-      this.setVelocity((this.body as Phaser.Physics.Arcade.Body).velocity.x * 0.8, (this.body as Phaser.Physics.Arcade.Body).velocity.y * 0.8)
+
+    if (this.isCharging(now) && now >= this.chargeStartedAt + 140 && !this.deathHandled && !this.isDashing()) {
+      if (this.anims.currentAnim?.key !== 'charlie-charge-hold') {
+        this.play('charlie-charge-hold', true)
+      }
+      this.actionLockUntil = Math.max(this.actionLockUntil, now + 70)
     }
-    if (!this.isDashing() && now > this.dashUntil && this.body) {
-      const body = this.body as Phaser.Physics.Arcade.Body
-      if (body.velocity.length() > this.moveSpeed) {
-        body.velocity.normalize().scale(this.moveSpeed)
+
+    if (now > this.dashUntil && body) {
+      if (Math.abs(body.velocity.x) > this.moveSpeed && !this.isDashing()) {
+        body.setVelocityX(Phaser.Math.Linear(body.velocity.x, Math.sign(body.velocity.x) * this.moveSpeed, 0.18))
       }
     }
+    if (grounded && !this.wasGrounded && !this.deathHandled && !this.isDashing() && !this.isCharging(now)) {
+      this.playAction('charlie-land', 140)
+    }
+    if (!this.isDashing() && !this.isCharging(now) && now >= this.actionLockUntil && !this.deathHandled) {
+      if (grounded) {
+        if (Math.abs(body?.velocity.x ?? 0) > 18) this.playLoop('charlie-run')
+        else this.playLoop('charlie-idle')
+      } else {
+        this.playLoop((body?.velocity.y ?? 0) < 0 ? 'charlie-jump' : 'charlie-fall')
+      }
+    }
+    this.wasGrounded = grounded
   }
 
   private getAttackDamage(base: number) {
     return this.scene.time.now < this.damageBoostUntil ? Math.round(base * 1.35) : base
+  }
+
+  private playAction(key: string, durationMs: number) {
+    this.actionLockUntil = this.scene.time.now + durationMs
+    this.play(key, true)
+  }
+
+  private playLoop(key: string) {
+    if (this.scene.time.now < this.actionLockUntil) return
+    if (this.anims.currentAnim?.key !== key) this.play(key, true)
   }
 }

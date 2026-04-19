@@ -1,9 +1,12 @@
 import Phaser from 'phaser'
 import { Enemy, type MinionKind } from '../entities/Enemy'
 import { Player } from '../entities/Player'
-import { causewayHazards, causewayLandmarks, causewayMap, causewayStages } from '../content/tuning'
+import { causewayHazards, causewayMap, causewayPlatforms, causewayStages } from '../content/tuning'
 import { audioDirector } from '../systems/AudioDirector'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
+import { showLevelBanner } from '../systems/LevelBanner'
+import { showNarrativeBeat } from '../systems/NarrativeBeat'
+import { addParallaxBackdrop, buildPlatforms, drawBranchSigns, drawHazards } from '../systems/SideScrollStage'
 import {
   grantScore,
   recordChapterResult,
@@ -22,13 +25,15 @@ export class CausewayScene extends Phaser.Scene {
   private player!: Player
   private readonly pad = new GamepadState()
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private keys!: Record<'W' | 'A' | 'S' | 'D' | 'SPACE' | 'Q' | 'SHIFT' | 'E' | 'C' | 'ESC', Phaser.Input.Keyboard.Key>
+  private keys!: Record<'A' | 'D' | 'LEFT' | 'RIGHT' | 'UP' | 'W' | 'SPACE' | 'Q' | 'SHIFT' | 'E' | 'C' | 'ESC', Phaser.Input.Keyboard.Key>
   private enemies: Enemy[] = []
   private enemyProjectiles!: Phaser.Physics.Arcade.Group
+  private platforms!: Phaser.Physics.Arcade.StaticGroup
   private simulationNow = 0
   private stageIndex = -1
   private shrineTriggered = false
-  private stageBanner?: Phaser.GameObjects.Text
+  private storyBeatOneShown = false
+  private storyBeatTwoShown = false
 
   constructor() {
     super('causeway')
@@ -53,12 +58,12 @@ export class CausewayScene extends Phaser.Scene {
     })
 
     setStatusText('Cinder Causeway active.')
-    setObjectiveText('Push through the three Causeway gates and survive the region-ending encounter.')
-    setLoreText('The Causeway collapses in layers. Fire hazards, lane pressure, and hunter packs arrive together.')
-    setHeaderText('Cinder Causeway is the broader second region: multiple spaces, stronger hazards, and two new enemy families.')
+    setObjectiveText('Push through the three Causeway gates and survive the crown encounter.')
+    setLoreText('The Causeway is now a full side-scrolling chapter with stacked lanes, heat vents, and branch-heavy movement.')
+    setHeaderText('Cinder Causeway escalates the game into a more authored platform-combat chapter with upper/lower route pressure.')
     setRegionText('Chapter 2: Cinder Causeway')
     setProgressText(`Current score ${runState.score} | Relics ${runState.activeRelics.length} | Modifier count ${runState.activeChallengeModifiers.length}`)
-    setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'Controller prompts active' : 'Keyboard prompts active')
+    setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'Controller prompts active' : 'Up/W jump, Shift dash, Space slash')
     audioDirector.playTrack('causeway')
 
     this.physics.world.setBounds(0, 0, causewayMap.width, causewayMap.height)
@@ -66,25 +71,29 @@ export class CausewayScene extends Phaser.Scene {
 
     this.drawCauseway()
     this.enemyProjectiles = this.physics.add.group()
-    this.player = new Player(this, 118, 410, null, null, runState.activeRelics, runState.factionVariant)
+    this.player = new Player(this, 118, 412, null, null, runState.activeRelics, runState.factionVariant)
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08)
-    this.stageBanner = this.add.text(480, 22, '', {
-      fontFamily: 'Georgia',
-      fontSize: '22px',
-      color: '#ffd7a3',
-    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(101)
+    this.physics.add.collider(this.player, this.platforms)
 
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE,Q,SHIFT,E,C,ESC') as CausewayScene['keys']
+    this.keys = this.input.keyboard!.addKeys('A,D,LEFT,RIGHT,UP,W,SPACE,Q,SHIFT,E,C,ESC') as CausewayScene['keys']
 
     this.physics.add.overlap(this.player, this.enemyProjectiles, (_player, projectile) => {
       const shot = projectile as Phaser.Physics.Arcade.Image
       if (this.player.isParrying() && shot.getData('parryable')) {
+        this.playFx('fx-parry-sheet', 'fx-parry', this.player.x, this.player.y - 24, 0.7, 30)
         shot.destroy()
         return
       }
       this.player.receiveDamage(Number(shot.getData('damage') ?? 10), this.simulationNow)
+      this.playFx('fx-hit-sheet', 'fx-hit', this.player.x, this.player.y - 24, 0.7, 30)
       shot.destroy()
+    })
+
+    showLevelBanner(this, {
+      title: 'Cinder Causeway',
+      subtitle: 'Chapter 2 · The road burns but it still holds',
+      accent: '#ffb67c',
     })
   }
 
@@ -96,7 +105,7 @@ export class CausewayScene extends Phaser.Scene {
 
   manualAdvance(ms: number) {
     const steps = Math.max(1, Math.round(ms / (1000 / 60)))
-    for (let i = 0; i < steps; i += 1) {
+    for (let index = 0; index < steps; index += 1) {
       this.simulationNow += 1000 / 60
       this.runFrame(this.simulationNow)
       this.physics.world.singleStep()
@@ -104,15 +113,20 @@ export class CausewayScene extends Phaser.Scene {
   }
 
   private runFrame(now: number) {
-    const moveVector = new Phaser.Math.Vector2(
-      (this.cursors.left?.isDown || this.keys.A.isDown ? -1 : 0) + (this.cursors.right?.isDown || this.keys.D.isDown ? 1 : 0) + this.pad.axisX(),
-      (this.cursors.up?.isDown || this.keys.W.isDown ? -1 : 0) + (this.cursors.down?.isDown || this.keys.S.isDown ? 1 : 0) + this.pad.axisY()
-    )
+    const horizontal =
+      (this.cursors.left?.isDown || this.keys.A.isDown || this.keys.LEFT.isDown ? -1 : 0) +
+      (this.cursors.right?.isDown || this.keys.D.isDown || this.keys.RIGHT.isDown ? 1 : 0) +
+      this.pad.axisX()
 
-    this.player.move(moveVector)
-    if (Phaser.Input.Keyboard.JustDown(this.keys.SHIFT) || this.pad.justPressed(GamepadButtons.East)) this.player.dash(now, moveVector)
+    this.player.move(horizontal)
+    if ((Phaser.Input.Keyboard.JustDown(this.cursors.up!) || Phaser.Input.Keyboard.JustDown(this.keys.W) || this.pad.justPressed(GamepadButtons.South)) && this.player.jump()) {
+      audioDirector.playSfx('dash', 0.45)
+    }
+    if (Phaser.Input.Keyboard.JustDown(this.keys.SHIFT) || this.pad.justPressed(GamepadButtons.East)) {
+      if (this.player.dash(now, horizontal)) this.playFx('fx-dash-sheet', 'fx-dash', this.player.x - this.player.facing.x * 18, this.player.y - 18, this.player.facing.x < 0 ? -0.82 : 0.82, 29)
+    }
     if (Phaser.Input.Keyboard.JustDown(this.keys.E) || this.pad.justPressed(GamepadButtons.North)) this.player.parry(now)
-    if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || this.pad.justPressed(GamepadButtons.South)) this.player.slash(now, this.enemies)
+    if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) this.player.slash(now, this.enemies)
     if (Phaser.Input.Keyboard.JustDown(this.keys.Q) || this.pad.justPressed(GamepadButtons.West)) this.player.pulse(now, this.enemies)
     if (Phaser.Input.Keyboard.JustDown(this.keys.C) || this.pad.justPressed(GamepadButtons.R1)) this.player.startCharge(now)
     if ((!this.keys.C.isDown && this.player.isCharging(now)) || this.pad.isDown(GamepadButtons.R1) === false) {
@@ -121,11 +135,11 @@ export class CausewayScene extends Phaser.Scene {
     }
 
     this.player.updateState(now)
-    this.enemies = this.enemies.filter((enemy) => enemy.active)
+    this.enemies = this.enemies.filter((enemy) => enemy.active && enemy.health > 0)
     this.enemies.forEach((enemy) => enemy.update(now, this.player))
 
     causewayHazards.forEach((hazard) => {
-      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, hazard.x, hazard.y) < hazard.radius) {
+      if (this.player.x > hazard.x && this.player.x < hazard.x + hazard.width && this.player.y + 24 > hazard.y) {
         this.player.receiveDamage(0.55, now)
       }
     })
@@ -145,19 +159,42 @@ export class CausewayScene extends Phaser.Scene {
       const runState = this.registry.get('runState') as RunState
       runState.causewayStage = nextStage + 1
       this.registry.set('runState', runState)
-      this.stageBanner?.setText(causewayStages[nextStage].label)
       setObjectiveText(causewayStages[nextStage].objective)
-      if (this.enemies.length === 0) {
-        this.spawnStage(nextStage)
-      }
+      showLevelBanner(this, {
+        title: causewayStages[nextStage].label,
+        subtitle: 'Subsector breach',
+        accent: '#ffcf91',
+        duration: 1500,
+      })
+      if (this.enemies.length === 0) this.spawnStage(nextStage)
     }
 
-    if (!this.shrineTriggered && this.player.x > 840) {
+    if (!this.storyBeatOneShown && this.stageIndex === 1 && this.enemies.length === 0) {
+      this.storyBeatOneShown = true
+      showNarrativeBeat(this, {
+        speaker: 'Archivist of Glass',
+        portrait: 'portrait-glass',
+        line: 'The mid span is failing in a pattern. Someone ahead is shaping this collapse for you.',
+        accent: '#ffcf91',
+      })
+    }
+
+    if (!this.storyBeatTwoShown && this.stageIndex === 2 && this.player.x > 1640) {
+      this.storyBeatTwoShown = true
+      showNarrativeBeat(this, {
+        speaker: 'Charlie',
+        portrait: 'portrait-charlie',
+        line: 'Crown span ahead. Good. One more shield comes down tonight.',
+        accent: '#ffb67c',
+      })
+    }
+
+    if (!this.shrineTriggered && this.player.x > 1180) {
       this.shrineTriggered = true
       this.handleShrineReward()
     }
 
-    if (this.stageIndex === causewayStages.length - 1 && this.enemies.length === 0) {
+    if (this.stageIndex === causewayStages.length - 1 && this.enemies.length === 0 && this.player.x > 2140) {
       this.finishRun()
     }
   }
@@ -167,11 +204,12 @@ export class CausewayScene extends Phaser.Scene {
     stage.enemies.forEach((kind, index) => {
       const enemy = new Enemy(
         this,
-        stage.zoneStart + 190 + index * 56,
-        160 + ((index % 3) * 110),
+        stage.zoneStart + 210 + index * 82,
+        index % 3 === 0 ? 240 : index % 2 === 0 ? 408 : 324,
         kind as MinionKind,
         this.enemyProjectiles
       )
+      this.physics.add.collider(enemy, this.platforms)
       this.enemies.push(enemy)
     })
     const runState = this.registry.get('runState') as RunState
@@ -255,34 +293,24 @@ export class CausewayScene extends Phaser.Scene {
   }
 
   private drawCauseway() {
-    const backdrop = this.add.graphics()
-    backdrop.fillGradientStyle(0x251412, 0x341611, 0x0e1114, 0x090d10, 1)
-    backdrop.fillRect(0, 0, causewayMap.width, causewayMap.height)
-
-    causewayLandmarks.forEach((landmark) => {
-      this.add.rectangle(landmark.x, landmark.y, landmark.width, landmark.height, 0x442922, 0.96).setDepth(2)
-    })
-
-    causewayHazards.forEach((hazard) => {
-      this.add.circle(hazard.x, hazard.y, hazard.radius + 14, 0xffaf70, 0.09).setDepth(1)
-      this.add.circle(hazard.x, hazard.y, hazard.radius, 0xdb5f20, 0.36).setDepth(1)
-    })
-
-    this.add.text(38, 484, 'Cinder Causeway', {
-      fontFamily: 'Georgia',
-      fontSize: '30px',
-      color: '#efdbc8',
-    })
+    addParallaxBackdrop(this, 'bg-causeway', causewayMap.width, causewayMap.height)
+    this.platforms = buildPlatforms(this, causewayPlatforms, 'causeway', causewayMap.height)
+    drawHazards(this, causewayHazards, 'causeway')
+    drawBranchSigns(this, [
+      { x: 356, y: 330, text: 'Ash Tower Ramp', accent: 0xffcf91 },
+      { x: 914, y: 362, text: 'Collapsed Lower Rail', accent: 0xe59f73 },
+      { x: 1538, y: 390, text: 'Rift Furnace', accent: 0xffbf8a },
+      { x: 2088, y: 210, text: 'Crown Span', accent: 0xffd4a7 },
+    ])
   }
 
   private flashCharge() {
-    const burst = this.add.circle(this.player.x, this.player.y, this.player.chargeRadius, 0xffbb75, 0.32).setDepth(16)
-    this.tweens.add({
-      targets: burst,
-      alpha: 0,
-      scale: 1.4,
-      duration: 180,
-      onComplete: () => burst.destroy(),
-    })
+    this.playFx('fx-charge-sheet', 'fx-charge', this.player.x, this.player.y - 18, 0.8, 16)
+  }
+
+  private playFx(sheetKey: string, animKey: string, x: number, y: number, scale: number, depth: number) {
+    const fx = this.add.sprite(x, y, sheetKey, 0).setScale(scale).setDepth(depth)
+    fx.play(animKey)
+    fx.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => fx.destroy())
   }
 }

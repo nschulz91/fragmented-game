@@ -21,6 +21,16 @@ async function waitForPreview(page, attempts = 40) {
   throw new Error('Preview server did not become ready in time.')
 }
 
+async function waitForState(page, predicate, attempts = 30, delayMs = 250) {
+  for (let index = 0; index < attempts; index += 1) {
+    const value = await page.evaluate(() => window.render_game_to_text?.() ?? '{}')
+    const parsed = JSON.parse(value)
+    if (predicate(parsed)) return parsed
+    await wait(delayMs)
+  }
+  return JSON.parse(await page.evaluate(() => window.render_game_to_text?.() ?? '{}'))
+}
+
 function assert(condition, message) {
   if (!condition) throw new Error(message)
 }
@@ -43,11 +53,11 @@ try {
   })
 
   await waitForPreview(page)
-  await wait(1000)
+  await wait(600)
 
   const renderState = async () => JSON.parse(await page.evaluate(() => window.render_game_to_text?.() ?? '{}'))
 
-  let state = await renderState()
+  let state = await waitForState(page, (state) => state.mode === 'menu')
   assert(state.mode === 'menu', `Expected menu mode, received ${state.mode}`)
 
   await page.evaluate(() => {
@@ -176,7 +186,7 @@ try {
     route['enemies'] = []
     route['routeEncounterCleared'] = true
     route['activateShrine']()
-    route['player'].x = 1360
+    route['player'].x = 1780
     route['runFrame'](0)
   })
   await wait(300)
@@ -192,6 +202,7 @@ try {
 
   await page.evaluate(() => {
     const dialogue = window.__fragmentedGame.scene.getScene('dialogue')
+    dialogue['advance']()
     dialogue['advance']()
   })
   await wait(300)

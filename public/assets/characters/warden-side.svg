@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="168" viewBox="0 0 144 168">
+  <defs>
+    <linearGradient id="armor" x1="0" x2="1">
+      <stop offset="0" stop-color="#5b2415"/>
+      <stop offset="1" stop-color="#ffb36d"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="72" cy="156" rx="34" ry="8" fill="#000" opacity=".24"/>
+  <path d="M42 152 50 94h44l10 58z" fill="#2a1610"/>
+  <path d="M26 102c0-34 18-60 46-60 30 0 48 23 48 59v20H26z" fill="url(#armor)"/>
+  <path d="M47 42c0-18 11-30 27-30 17 0 29 12 29 30l-12 18H58z" fill="#f0c292"/>
+  <path d="M41 42c8-20 23-31 45-32 18 2 29 13 33 31-15-3-22 1-33 11-12-9-25-12-45-10z" fill="#23120d"/>
+  <circle cx="67" cy="48" r="4" fill="#ffdca3"/>
+  <circle cx="81" cy="48" r="4" fill="#ffdca3"/>
+  <path d="M31 115h85" stroke="#ffd18b" stroke-width="4" opacity=".44"/>
+</svg>

@@ -8,8 +8,88 @@ export class BootScene extends Phaser.Scene {
     super('boot')
   }
 
+  preload() {
+    this.load.spritesheet('charlie-sheet', '/assets/generated/charlie_sheet_final.png', {
+      frameWidth: 220,
+      frameHeight: 320,
+    })
+    this.load.spritesheet('shade-sheet', '/assets/generated/shade_sheet_final.png', {
+      frameWidth: 180,
+      frameHeight: 264,
+    })
+    this.load.spritesheet('cultist-sheet', '/assets/generated/cultist_sheet_final.png', {
+      frameWidth: 176,
+      frameHeight: 252,
+    })
+    this.load.spritesheet('brute-sheet', '/assets/generated/brute_sheet_final.png', {
+      frameWidth: 224,
+      frameHeight: 320,
+    })
+    this.load.spritesheet('embermage-sheet', '/assets/generated/embermage_sheet_final.png', {
+      frameWidth: 164,
+      frameHeight: 252,
+    })
+    this.load.spritesheet('ashhound-sheet', '/assets/generated/ashhound_sheet_final.png', {
+      frameWidth: 240,
+      frameHeight: 164,
+    })
+    this.load.spritesheet('warden-sheet', '/assets/generated/warden_sheet_final.png', {
+      frameWidth: 286,
+      frameHeight: 360,
+    })
+
+    this.load.image('bg-pixor', '/assets/generated/pixor_painted.png')
+    this.load.image('bg-route', '/assets/generated/route_painted.png')
+    this.load.image('bg-causeway', '/assets/generated/causeway_painted.png')
+
+    this.load.image('portrait-charlie', '/assets/generated/portrait_charlie_painted.png')
+    this.load.image('portrait-warden', '/assets/generated/portrait_warden_painted.png')
+    this.load.image('portrait-veyra', '/assets/generated/portrait_veyra_painted.png')
+    this.load.image('portrait-scout', '/assets/generated/portrait_scout_painted.png')
+    this.load.image('portrait-glass', '/assets/generated/portrait_glass_painted.png')
+    this.load.image('charlie-fullbody', '/assets/generated/charlie_fullbody.png')
+    this.load.image('charlie-turnaround', '/assets/generated/charlie_turnaround.png')
+    this.load.image('fragmented-key-art', '/assets/generated/fragmented_key_art.png')
+
+    this.load.svg('pulse-ring', '/assets/fx/pulse-ring.svg')
+    this.load.svg('shield', '/assets/fx/shield-orb.svg')
+    this.load.svg('shrine', '/assets/fx/shrine.svg')
+    this.load.svg('relic-core', '/assets/fx/relic-core.svg')
+    this.load.spritesheet('fx-slash-sheet', '/assets/generated/fx_slash_sheet.png', {
+      frameWidth: 220,
+      frameHeight: 160,
+    })
+    this.load.spritesheet('fx-dash-sheet', '/assets/generated/fx_dash_sheet.png', {
+      frameWidth: 240,
+      frameHeight: 120,
+    })
+    this.load.spritesheet('fx-pulse-sheet', '/assets/generated/fx_pulse_sheet.png', {
+      frameWidth: 260,
+      frameHeight: 220,
+    })
+    this.load.spritesheet('fx-parry-sheet', '/assets/generated/fx_parry_sheet.png', {
+      frameWidth: 160,
+      frameHeight: 160,
+    })
+    this.load.spritesheet('fx-hit-sheet', '/assets/generated/fx_hit_sheet.png', {
+      frameWidth: 160,
+      frameHeight: 160,
+    })
+    this.load.spritesheet('fx-charge-sheet', '/assets/generated/fx_charge_sheet.png', {
+      frameWidth: 260,
+      frameHeight: 260,
+    })
+    this.load.image('stage-pixor-tile', '/assets/generated/stage_pixor_tile.png')
+    this.load.image('stage-route-tile', '/assets/generated/stage_route_tile.png')
+    this.load.image('stage-causeway-tile', '/assets/generated/stage_causeway_tile.png')
+    this.load.image('stage-pixor-prop', '/assets/generated/stage_pixor_prop.png')
+    this.load.image('stage-route-prop', '/assets/generated/stage_route_prop.png')
+    this.load.image('stage-causeway-prop', '/assets/generated/stage_causeway_prop.png')
+  }
+
   create() {
     this.buildTextures()
+    this.buildAnimations()
 
     const metaProgress = loadMetaProgress()
     const settings = loadSettings()
@@ -75,25 +155,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   private buildTextures() {
-    this.makeCircleTexture('charlie', 24, 0xf2d39b, 0x5f1931)
-    this.makeCircleTexture('shade', 18, 0x7869ff, 0x281c5e)
-    this.makeCircleTexture('cultist', 18, 0xd6a7ff, 0x59306b)
-    this.makeCircleTexture('brute', 24, 0xc06c3d, 0x5e2c16)
-    this.makeCircleTexture('embermage', 19, 0xff9a63, 0x7d3115)
-    this.makeCircleTexture('ashhound', 21, 0xdac48d, 0x4c4031)
-    this.makeCircleTexture('warden', 34, 0xffca80, 0x6f300f)
     this.makeCircleTexture('enemy-bolt', 8, 0xf4d7ff, 0x8e3bb4)
     this.makeCircleTexture('boss-bolt', 10, 0xffb366, 0xa14612)
     this.makeCircleTexture('ember-bolt', 9, 0xffbf6d, 0xc8561b)
-    this.makeCircleTexture('shield', 12, 0xbdf3ff, 0x3d7da0)
-    this.makeCircleTexture('shrine', 16, 0xa9f2d1, 0x36735e)
-    this.makeCircleTexture('relic-core', 14, 0xf6e2a6, 0x745b20)
-    this.makeRingTexture('pulse-ring', 148, 0xbdefff)
-    this.makePortraitTexture('portrait-charlie', 0xf2d39b, 0x5f1931)
-    this.makePortraitTexture('portrait-warden', 0xffca80, 0x6f300f)
-    this.makePortraitTexture('portrait-veyra', 0xb7d9f8, 0x345c79)
-    this.makePortraitTexture('portrait-scout', 0xc7f1b4, 0x426038)
-    this.makePortraitTexture('portrait-glass', 0xe7d7ff, 0x6d59a1)
   }
 
   private makeCircleTexture(key: string, radius: number, fill: number, stroke: number) {
@@ -106,24 +170,207 @@ export class BootScene extends Phaser.Scene {
     gfx.destroy()
   }
 
-  private makeRingTexture(key: string, radius: number, color: number) {
-    const gfx = this.add.graphics()
-    gfx.lineStyle(6, color, 0.9)
-    gfx.strokeCircle(radius + 6, radius + 6, radius)
-    gfx.generateTexture(key, radius * 2 + 12, radius * 2 + 12)
-    gfx.destroy()
+  private buildAnimations() {
+    if (!this.anims.exists('charlie-idle')) {
+      this.anims.create({
+        key: 'charlie-idle',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 0, end: 1 }),
+        frameRate: 3,
+        repeat: -1,
+      })
+    }
+    if (!this.anims.exists('charlie-run')) {
+      this.anims.create({
+        key: 'charlie-run',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 2, end: 5 }),
+        frameRate: 10,
+        repeat: -1,
+      })
+    }
+    if (!this.anims.exists('charlie-jump')) {
+      this.anims.create({
+        key: 'charlie-jump',
+        frames: [
+          { key: 'charlie-sheet', frame: 6, duration: 90 },
+          { key: 'charlie-sheet', frame: 7, duration: 80 },
+          { key: 'charlie-sheet', frame: 6, duration: 90 },
+        ],
+        frameRate: 10,
+        repeat: -1,
+      })
+    }
+    if (!this.anims.exists('charlie-fall')) {
+      this.anims.create({
+        key: 'charlie-fall',
+        frames: [
+          { key: 'charlie-sheet', frame: 7, duration: 110 },
+          { key: 'charlie-sheet', frame: 6, duration: 90 },
+        ],
+        frameRate: 8,
+        repeat: -1,
+      })
+    }
+    if (!this.anims.exists('charlie-land')) {
+      this.anims.create({
+        key: 'charlie-land',
+        frames: [
+          { key: 'charlie-sheet', frame: 7, duration: 70 },
+          { key: 'charlie-sheet', frame: 6, duration: 60 },
+          { key: 'charlie-sheet', frame: 1, duration: 90 },
+        ],
+        frameRate: 12,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-dash')) {
+      this.anims.create({
+        key: 'charlie-dash',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 13, end: 14 }),
+        frameRate: 16,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-slash')) {
+      this.anims.create({
+        key: 'charlie-slash',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 8, end: 10 }),
+        frameRate: 18,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-pulse')) {
+      this.anims.create({
+        key: 'charlie-pulse',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 11, end: 12 }),
+        frameRate: 10,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-parry')) {
+      this.anims.create({
+        key: 'charlie-parry',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 15, end: 16 }),
+        frameRate: 14,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-charge-start')) {
+      this.anims.create({
+        key: 'charlie-charge-start',
+        frames: [{ key: 'charlie-sheet', frame: 17 }],
+        frameRate: 1,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-charge-hold')) {
+      this.anims.create({
+        key: 'charlie-charge-hold',
+        frames: [{ key: 'charlie-sheet', frame: 18 }],
+        frameRate: 1,
+        repeat: -1,
+      })
+    }
+    if (!this.anims.exists('charlie-charge-release')) {
+      this.anims.create({
+        key: 'charlie-charge-release',
+        frames: [{ key: 'charlie-sheet', frame: 19 }],
+        frameRate: 1,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-charge')) {
+      this.anims.create({
+        key: 'charlie-charge',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 17, end: 19 }),
+        frameRate: 10,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-hit')) {
+      this.anims.create({
+        key: 'charlie-hit',
+        frames: [{ key: 'charlie-sheet', frame: 20 }],
+        frameRate: 1,
+        repeat: 0,
+      })
+    }
+    if (!this.anims.exists('charlie-death')) {
+      this.anims.create({
+        key: 'charlie-death',
+        frames: this.anims.generateFrameNumbers('charlie-sheet', { start: 21, end: 22 }),
+        frameRate: 4,
+        repeat: 0,
+      })
+    }
+
+    this.createNpcAnimations('shade-sheet', 'shade')
+    this.createNpcAnimations('cultist-sheet', 'cultist')
+    this.createNpcAnimations('brute-sheet', 'brute')
+    this.createNpcAnimations('embermage-sheet', 'embermage')
+    this.createNpcAnimations('ashhound-sheet', 'ashhound')
+    this.createBossAnimations()
+    this.createFxAnimations()
   }
 
-  private makePortraitTexture(key: string, fill: number, stroke: number) {
-    const gfx = this.add.graphics()
-    gfx.fillStyle(fill, 1)
-    gfx.fillRoundedRect(0, 0, 128, 148, 18)
-    gfx.lineStyle(5, stroke, 1)
-    gfx.strokeRoundedRect(0, 0, 128, 148, 18)
-    gfx.fillStyle(stroke, 0.28)
-    gfx.fillCircle(64, 54, 28)
-    gfx.fillRoundedRect(28, 86, 72, 36, 12)
-    gfx.generateTexture(key, 128, 148)
-    gfx.destroy()
+  private createNpcAnimations(sheetKey: string, prefix: string) {
+    const pairs: Array<[string, number[]]> = [
+      ['idle', [0, 1]],
+      ['move', [2, 3, 4]],
+      ['telegraph', [5, 6]],
+      ['attack', [7, 8]],
+      ['hit', [9]],
+      ['death', [10, 11]],
+    ]
+    pairs.forEach(([name, frames]) => {
+      const key = `${prefix}-${name}`
+      if (this.anims.exists(key)) return
+      this.anims.create({
+        key,
+        frames: frames.map((frame) => ({ key: sheetKey, frame })),
+        frameRate: name === 'move' ? 8 : name === 'telegraph' || name === 'attack' ? 10 : name === 'death' ? 6 : 3,
+        repeat: name === 'idle' || name === 'move' ? -1 : 0,
+      })
+    })
+  }
+
+  private createBossAnimations() {
+    const defs: Array<[string, number[]]> = [
+      ['warden-idle', [0, 1]],
+      ['warden-move', [2, 3, 4]],
+      ['warden-cast', [5, 6, 7]],
+      ['warden-dash', [8, 9]],
+      ['warden-phase', [10, 11]],
+      ['warden-hit', [12]],
+      ['warden-death', [13, 14]],
+    ]
+    defs.forEach(([key, frames]) => {
+      if (this.anims.exists(key)) return
+      this.anims.create({
+        key,
+        frames: frames.map((frame) => ({ key: 'warden-sheet', frame })),
+        frameRate: frames.length > 1 ? 6 : 1,
+        repeat: key === 'warden-idle' || key === 'warden-move' ? -1 : 0,
+      })
+    })
+  }
+
+  private createFxAnimations() {
+    const defs: Array<[string, string, number[]]> = [
+      ['fx-slash', 'fx-slash-sheet', [0, 1, 2, 3, 4]],
+      ['fx-pulse', 'fx-pulse-sheet', [0, 1, 2, 3, 4]],
+      ['fx-dash', 'fx-dash-sheet', [0, 1, 2, 3, 4]],
+      ['fx-parry', 'fx-parry-sheet', [0, 1, 2, 3, 4]],
+      ['fx-hit', 'fx-hit-sheet', [0, 1, 2, 3, 4]],
+      ['fx-charge', 'fx-charge-sheet', [0, 1, 2, 3, 4, 5, 6]],
+    ]
+    defs.forEach(([key, sheet, frames]) => {
+      if (this.anims.exists(key)) return
+      this.anims.create({
+        key,
+        frames: frames.map((frame) => ({ key: sheet, frame })),
+        frameRate: 14,
+        repeat: 0,
+      })
+    })
   }
 }

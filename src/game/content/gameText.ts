@@ -10,13 +10,15 @@ export const menuLore = [
 
 export const instructionLines = [
   'Break three Lake Pixor waves, stabilize the checkpoint, and survive the Warden to unlock the route east.',
-  'Space slashes, Q releases the time pulse, Shift dashes, E parries, and C charges a local detonation burst.',
-  'Water and fire are both lethal. Use landmarks, telegraphs, and movement windows instead of forcing straight lines.',
+  'This is now a side-scrolling run: use upper and lower paths, jump between ledges, and do not stand in hazard channels.',
+  'Space slashes, Up/W jumps, Q releases the time pulse, Shift dashes, E parries, and C charges a local detonation burst.',
+  'Water and fire are both lethal. Use branches, telegraphs, and movement windows instead of forcing straight lines.',
 ]
 
 export const briefingLines = [
   'Mission one is Lake Pixor. Break the Warden, claim the reward room, and force open the road into the Cinder Causeway.',
   'This run can also activate a faction variant, one equipped relic from the permanent pool, and one unlocked challenge modifier.',
+  'The route is no longer a single fight. Each chapter carries a story beat, a pressure shift, and a more dangerous road east.',
 ]
 
 export const pixorChapterCard = {
@@ -47,6 +49,32 @@ export const pixorDialogue = [
     speaker: 'Charlie',
     portrait: 'portrait-charlie',
     line: 'Then I break the Warden, take the road, and keep moving until my brother hears me coming.',
+  },
+]
+
+export const pixorMidOneDialogue = [
+  {
+    speaker: 'Marshal Veyra',
+    portrait: 'portrait-veyra',
+    line: 'The first breach shelf is clear. Do not slow down now. The Warden is learning your pace from every kill.',
+  },
+  {
+    speaker: 'Charlie',
+    portrait: 'portrait-charlie',
+    line: 'Then I stop giving him time to learn.',
+  },
+]
+
+export const pixorMidTwoDialogue = [
+  {
+    speaker: 'Scout Runner',
+    portrait: 'portrait-scout',
+    line: 'The lower spillway is opening. Another push and the checkpoint ledge is yours.',
+  },
+  {
+    speaker: 'Charlie',
+    portrait: 'portrait-charlie',
+    line: 'Good. Keep the road breathing. I only need one open line.',
   },
 ]
 
@@ -97,11 +125,55 @@ export const routeDialogue = [
   },
 ]
 
+export const routeMidDialogue = [
+  {
+    speaker: 'Scout Runner',
+    portrait: 'portrait-scout',
+    line: 'The shrine line held longer than expected. The Causeway scouts died buying that time. Do not waste it.',
+  },
+  {
+    speaker: 'Charlie',
+    portrait: 'portrait-charlie',
+    line: 'I am not here to waste anything. Not time. Not roads. Not the people the Prince leaves behind.',
+  },
+]
+
 export const causewayIntroDialogue = [
   {
     speaker: 'Archivist of Glass',
     portrait: 'portrait-glass',
     line: 'The Causeway collapses in sections. Move fast, read the vents, and do not stand where the stone is already glowing.',
+  },
+  {
+    speaker: 'Charlie',
+    portrait: 'portrait-charlie',
+    line: 'Then I take each section before it falls. The Prince is not getting another quiet mile.',
+  },
+]
+
+export const causewayMidOneDialogue = [
+  {
+    speaker: 'Archivist of Glass',
+    portrait: 'portrait-glass',
+    line: 'The mid span is breaking the old way on purpose. Someone ahead is trying to slow only you, not the whole road.',
+  },
+  {
+    speaker: 'Charlie',
+    portrait: 'portrait-charlie',
+    line: 'Good. That means I am finally close enough to bother them.',
+  },
+]
+
+export const causewayMidTwoDialogue = [
+  {
+    speaker: 'Scout Runner',
+    portrait: 'portrait-scout',
+    line: 'Crown span ahead. After that, the Prince loses another shield and another place to hide his trail.',
+  },
+  {
+    speaker: 'Charlie',
+    portrait: 'portrait-charlie',
+    line: 'Then the crown falls next.',
   },
 ]
 

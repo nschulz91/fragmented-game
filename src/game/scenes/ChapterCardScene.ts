@@ -24,6 +24,7 @@ export class ChapterCardScene extends Phaser.Scene {
   create() {
     const cardId = (this.registry.get('chapterCardId') ?? 'pixor') as ChapterCardId
     const card = cardId === 'causeway' ? causewayChapterCard : cardId === 'route' ? routeChapterCard : pixorChapterCard
+    const backgroundKey = cardId === 'causeway' ? 'bg-causeway' : cardId === 'route' ? 'bg-route' : 'bg-pixor'
     this.registry.set('renderState', {
       ...(this.registry.get('renderState') ?? {}),
       mode: 'chapter-card',
@@ -38,7 +39,9 @@ export class ChapterCardScene extends Phaser.Scene {
     setRegionText(card.subtitle)
     setPromptText((this.registry.get('inputMode') ?? 'keyboard') === 'controller' ? 'South button continues' : 'Enter continues')
 
-    this.add.rectangle(480, 270, 960, 540, 0x050c10, 0.95)
+    this.add.image(480, 270, backgroundKey).setDisplaySize(960, 540).setAlpha(0.9)
+    this.add.rectangle(480, 270, 960, 540, 0x050c10, 0.5)
+    this.add.rectangle(480, 270, 700, 300, 0x071015, 0.72).setStrokeStyle(1, 0xf5c978, 0.18)
     this.add.text(480, 172, card.title, {
       fontFamily: 'Georgia',
       fontSize: '30px',

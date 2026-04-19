@@ -4,6 +4,7 @@ import { MenuScene } from './scenes/MenuScene'
 import { BriefingScene } from './scenes/BriefingScene'
 import { ChapterCardScene } from './scenes/ChapterCardScene'
 import { DialogueScene } from './scenes/DialogueScene'
+import { ControlsScene } from './scenes/ControlsScene'
 import { InstructionScene } from './scenes/InstructionScene'
 import { SettingsScene } from './scenes/SettingsScene'
 import { CheckpointScene } from './scenes/CheckpointScene'
@@ -31,7 +32,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { x: 0, y: 0 },
+      gravity: { x: 0, y: 1600 },
       debug: false,
     },
   },
@@ -41,6 +42,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     BriefingScene,
     ChapterCardScene,
     DialogueScene,
+    ControlsScene,
     InstructionScene,
     SettingsScene,
     CheckpointScene,

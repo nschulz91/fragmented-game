@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#120f12"/>
+      <stop offset=".5" stop-color="#301815"/>
+      <stop offset="1" stop-color="#6c2414"/>
+    </linearGradient>
+    <linearGradient id="lava" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffb363"/>
+      <stop offset=".5" stop-color="#ff6e2f"/>
+      <stop offset="1" stop-color="#7f180a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <path d="M0 740c205-34 370-110 557-98 165 10 286 76 476 76 161 0 257-56 427-66 178-11 283 33 460 89v339H0z" fill="#281315"/>
+  <path d="M0 874c197-17 321-61 521-59 193 3 272 70 473 71 188 0 273-78 490-76 169 1 229 45 436 78v192H0z" fill="#120f12"/>
+  <g fill="#4b2119" opacity=".95">
+    <rect x="126" y="485" width="109" height="255"/>
+    <rect x="515" y="410" width="145" height="312"/>
+    <rect x="909" y="453" width="121" height="247"/>
+    <rect x="1342" y="377" width="152" height="338"/>
+  </g>
+  <g fill="url(#lava)" opacity=".78">
+    <ellipse cx="349" cy="931" rx="132" ry="37"/>
+    <ellipse cx="972" cy="898" rx="154" ry="42"/>
+    <ellipse cx="1514" cy="945" rx="121" ry="31"/>
+  </g>
+</svg>
