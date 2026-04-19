@@ -16,6 +16,7 @@ export interface SettingsState {
   masterVolume: number
   musicVolume: number
   sfxVolume: number
+  muted: boolean
   fullscreen: boolean
 }
 
@@ -78,9 +79,36 @@ export interface RenderState {
 
 export const defaultSettings: SettingsState = {
   masterVolume: 0.85,
-  musicVolume: 0.45,
+  musicVolume: 0.3,
   sfxVolume: 0.8,
+  muted: false,
   fullscreen: false,
+}
+
+const settingsStorageKey = 'fragmented-settings-v1'
+
+export function loadSettings(): SettingsState {
+  if (typeof window === 'undefined') return { ...defaultSettings }
+  try {
+    const raw = window.localStorage.getItem(settingsStorageKey)
+    if (!raw) return { ...defaultSettings }
+    const parsed = JSON.parse(raw) as Partial<SettingsState>
+    return {
+      ...defaultSettings,
+      ...parsed,
+    }
+  } catch {
+    return { ...defaultSettings }
+  }
+}
+
+export function saveSettings(settings: SettingsState) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(settingsStorageKey, JSON.stringify(settings))
+  } catch {
+    // Ignore storage failures; the game should still run normally.
+  }
 }
 
 export function createRunState(seed = 'pixor-v2-default'): RunState {
@@ -140,4 +168,3 @@ export function getSeedFromLocation() {
   const params = new URLSearchParams(window.location.search)
   return params.get('seed') || 'pixor-v2-default'
 }
-

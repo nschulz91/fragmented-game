@@ -6,6 +6,7 @@ This V2 milestone keeps the fight inside Lake Pixor and expands the playable loo
 
 - title menu, how-to-play, settings, pause, checkpoint, boss intro, win, and lose scenes
 - keyboard and gamepad support
+- persistent local settings with mute support
 - slash, pulse, dash, and parry combat
 - three scripted pre-boss waves
 - checkpoint buff and faction-perk selection
@@ -39,6 +40,7 @@ If a hosted Vercel preview has been created for the current branch or repo, use 
 - `Q`: time pulse
 - `Shift`: dash / evade
 - `E`: parry / block
+- `M`: mute toggle
 - `Esc`: pause
 - `F`: fullscreen
 - `Enter`: continue through menu cards and end screens
@@ -64,6 +66,14 @@ You can also set a deterministic encounter seed with the query string:
 ```text
 /?seed=smoke-seed
 ```
+
+There is also a repo-level smoke runner:
+
+```bash
+npm run smoke
+```
+
+It builds the project, serves the production bundle locally, and verifies the menu, gameplay, checkpoint, boss intro, and pause flow with Playwright.
 
 ## Project Structure
 

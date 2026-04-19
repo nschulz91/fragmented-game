@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { setControlsText, setLoreText, setObjectiveText, setStatusText } from '../../ui/shell'
 import { audioDirector } from '../systems/AudioDirector'
-import { createRunState, defaultSettings, getSeedFromLocation } from '../state'
+import { createRunState, getSeedFromLocation, loadSettings } from '../state'
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,7 +11,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     this.buildTextures()
 
-    const settings = this.registry.get('settings') ?? { ...defaultSettings }
+    const settings = this.registry.get('settings') ?? loadSettings()
     this.registry.set('settings', settings)
     this.registry.set('runState', createRunState(getSeedFromLocation()))
     this.registry.set('renderState', {
@@ -36,6 +36,7 @@ export class BootScene extends Phaser.Scene {
       'Dash: Shift / east button',
       'Parry: E / north button',
       'Pause: Esc / start',
+      'Mute: M',
       'Fullscreen: F',
     ])
 

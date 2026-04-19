@@ -4,7 +4,7 @@ import { Enemy, type MinionKind } from '../entities/Enemy'
 import { Player } from '../entities/Player'
 import { arena, arenaLandmarks, bossStats, playerStats, spawnPoints, waterPools, wavePlan } from '../content/tuning'
 import { bossOutroLines } from '../content/gameText'
-import { buffCatalog, perkCatalog, type BuffId, type PerkId, type RenderState, createRunState } from '../state'
+import { buffCatalog, perkCatalog, saveSettings, type BuffId, type PerkId, type RenderState, createRunState } from '../state'
 import { audioDirector } from '../systems/AudioDirector'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
 import { Hud } from '../systems/Hud'
@@ -142,6 +142,7 @@ export class GameScene extends Phaser.Scene {
       const settings = { ...(this.registry.get('settings') as { fullscreen: boolean }) }
       settings.fullscreen = this.scale.isFullscreen
       this.registry.set('settings', { ...(this.registry.get('settings') as object), ...settings })
+      saveSettings(this.registry.get('settings'))
     }
 
     const moveVector = new Phaser.Math.Vector2(

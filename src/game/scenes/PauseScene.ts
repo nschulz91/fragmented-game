@@ -1,13 +1,17 @@
 import Phaser from 'phaser'
 import { GamepadButtons, GamepadState } from '../systems/GamepadState'
+import { createRunState } from '../state'
 import { setStatusText } from '../../ui/shell'
 
 const pauseOptions = ['Resume', 'Restart from Checkpoint', 'Restart Run', 'Quit to Menu'] as const
+type ConfirmAction = 'restart-run' | 'quit-menu' | null
 
 export class PauseScene extends Phaser.Scene {
   private cursor = 0
   private readonly pad = new GamepadState()
   private items: Phaser.GameObjects.Text[] = []
+  private confirmText?: Phaser.GameObjects.Text
+  private confirmAction: ConfirmAction = null
   private keys!: Record<'UP' | 'DOWN' | 'ENTER' | 'ESC', Phaser.Input.Keyboard.Key>
 
   constructor() {
@@ -40,6 +44,13 @@ export class PauseScene extends Phaser.Scene {
       }).setOrigin(0.5)
       this.items.push(text)
     })
+    this.confirmText = this.add.text(480, 428, '', {
+      fontFamily: 'Georgia',
+      fontSize: '18px',
+      color: '#f5c978',
+      align: 'center',
+      wordWrap: { width: 360 },
+    }).setOrigin(0.5)
     this.render()
   }
 
@@ -54,6 +65,11 @@ export class PauseScene extends Phaser.Scene {
       this.render()
     }
     if (Phaser.Input.Keyboard.JustDown(this.keys.ESC)) {
+      if (this.confirmAction) {
+        this.confirmAction = null
+        this.render()
+        return
+      }
       this.resumeRun()
       return
     }
@@ -69,14 +85,25 @@ export class PauseScene extends Phaser.Scene {
         this.scene.stop()
         this.scene.start('game')
       } else if (label === 'Restart Run') {
-        this.registry.set('runState', { ...runState, ...{ resumedFromCheckpoint: false } })
-        this.scene.stop('game')
-        this.scene.stop()
-        this.scene.start('game')
+        if (this.confirmAction === 'restart-run') {
+          this.registry.set('runState', { ...createRunState(runState.seed), seed: runState.seed })
+          this.scene.stop('game')
+          this.scene.stop()
+          this.scene.start('game')
+        } else {
+          this.confirmAction = 'restart-run'
+          this.render()
+        }
       } else {
-        this.scene.stop('game')
-        this.scene.stop()
-        this.scene.start('menu')
+        if (this.confirmAction === 'quit-menu') {
+          this.registry.set('runState', createRunState(runState.seed))
+          this.scene.stop('game')
+          this.scene.stop()
+          this.scene.start('menu')
+        } else {
+          this.confirmAction = 'quit-menu'
+          this.render()
+        }
       }
     }
   }
@@ -91,5 +118,14 @@ export class PauseScene extends Phaser.Scene {
       const active = index === this.cursor
       item.setText(`${active ? '› ' : ''}${pauseOptions[index]}`).setColor(active ? '#f5c978' : '#d4e0dc')
     })
+    if (this.confirmText) {
+      this.confirmText.setText(
+        this.confirmAction === 'restart-run'
+          ? 'Press Enter again to reset the full run.\nEsc cancels.'
+          : this.confirmAction === 'quit-menu'
+            ? 'Press Enter again to abandon the run and return to menu.\nEsc cancels.'
+            : ''
+      )
+    }
   }
 }

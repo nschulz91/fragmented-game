@@ -16,3 +16,9 @@ Original prompt: Implement the Fragmented V2 expansion plan with combat polish, 
   - `npm run build` passes.
   - Local browser smoke test confirms menu -> instructions -> game -> checkpoint -> boss intro -> boss -> pause scene/state transitions.
   - Seeded smoke run validates render-state output for checkpoint unlock, buff/perk selection, and boss phase progression without console errors.
+- Next improvement batch:
+  - Added persistent settings storage via `localStorage`.
+  - Added an explicit mute flag plus global `M` hotkey support.
+  - Lowered default music volume for less aggressive BGM.
+  - Added pause-menu confirmation for destructive actions like full restart and quitting to menu.
+  - Added `npm run smoke` as a repeatable Playwright regression check against the production preview build.

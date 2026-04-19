@@ -21,6 +21,7 @@ class AudioDirector {
     masterVolume: 1,
     musicVolume: 1,
     sfxVolume: 1,
+    muted: false,
     fullscreen: false,
   })
   private currentTrack: TrackName = 'none'
@@ -44,11 +45,13 @@ class AudioDirector {
 
   private getSfxGain(multiplier = 1) {
     const settings = this.settingsResolver()
+    if (settings.muted) return 0
     return settings.masterVolume * settings.sfxVolume * multiplier
   }
 
   private getMusicGain(multiplier = 1) {
     const settings = this.settingsResolver()
+    if (settings.muted) return 0
     return settings.masterVolume * settings.musicVolume * multiplier
   }
 
@@ -127,6 +130,17 @@ class AudioDirector {
       this.interval = undefined
     }
     this.currentTrack = 'none'
+  }
+
+  syncSettings() {
+    if (this.settingsResolver().muted) {
+      this.stopTrack()
+      return
+    }
+    if (this.currentTrack === 'none') return
+    const track = this.currentTrack
+    this.currentTrack = 'none'
+    this.playTrack(track)
   }
 
   suspend() {
